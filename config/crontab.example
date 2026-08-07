@@ -1,0 +1,4 @@
+# agent-admin 계정의 crontab 예시 골격
+# 실제 절대경로와 환경변수 전달 방식은 docs/08-logging-cron.md에서 검증 후 작성합니다.
+
+# * * * * * /absolute/path/to/monitor.sh
