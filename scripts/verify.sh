@@ -27,6 +27,10 @@ check_stat() {
     || fail "$path => $actual (expected ${expected_owner}:${expected_group}:${expected_mode})"
 }
 
+escape_ere() {
+  printf '%s' "$1" | sed 's/[][(){}.^$*+?|\\]/\\&/g'
+}
+
 resolve_process_pattern() {
   local env_file="$1" pattern=""
   if [[ -r "$env_file" ]]; then
@@ -112,7 +116,8 @@ check_stat /home/agent-admin/agent-app/api_keys/t_secret.key agent-admin agent-c
 
 printf '\n[agent-runtime]\n'
 AGENT_PROCESS_PATTERN="$(resolve_process_pattern "$ENV_FILE")"
-AGENT_PID="$(pgrep -f -- "$AGENT_PROCESS_PATTERN" | head -n 1 || true)"
+AGENT_PROCESS_REGEX="(^|[[:space:]/])$(escape_ere "$AGENT_PROCESS_PATTERN")([[:space:]]|$)"
+AGENT_PID="$(pgrep -f -- "$AGENT_PROCESS_REGEX" | head -n 1 || true)"
 if [[ -n "$AGENT_PID" ]]; then
   AGENT_USER="$(ps -o user= -p "$AGENT_PID" 2>/dev/null | tr -d '[:space:]')"
   [[ -n "$AGENT_USER" && "$AGENT_USER" != root ]] && pass "Agent process non-root: pid=$AGENT_PID user=$AGENT_USER pattern=$AGENT_PROCESS_PATTERN" || fail "Agent process owner invalid: pid=$AGENT_PID user=${AGENT_USER:-unknown}"
