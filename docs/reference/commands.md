@@ -87,7 +87,8 @@ sudo logrotate -f /etc/logrotate.d/agent-monitor
 ```bash
 bash scripts/preflight.sh
 sudo bash scripts/verify.sh
-sudo bash scripts/acceptance-test.sh --agent-boot-log <FILE>
+sudo bash scripts/acceptance-test.sh \
+  --agent-boot-log <FILE>
 ```
 
 ## 보너스

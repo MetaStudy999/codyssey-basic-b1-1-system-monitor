@@ -66,6 +66,8 @@ sudo bash scripts/acceptance-test.sh \
   --agent-boot-log <Agent 시작 출력 파일>
 ```
 
+key 값은 출력하거나 evidence에 복사하지 않습니다. `acceptance-test.sh`와 `verify.sh`는 원본 mission 값의 고정 단방향 digest만 비교하며 실제 값과 계산된 digest를 출력하지 않습니다.
+
 이 스크립트는 다음을 묶어 확인합니다.
 
 ```text
@@ -123,10 +125,12 @@ exit 1
 실제 CPU·메모리·디스크를 채우지 않습니다.
 
 ```bash
-CPU_WARN_THRESHOLD=-1 \
-MEM_WARN_THRESHOLD=-1 \
-DISK_WARN_THRESHOLD=-1 \
-/home/agent-admin/agent-app/bin/monitor.sh
+sudo -u agent-admin env \
+  AGENT_ENV_FILE=/nonexistent \
+  CPU_WARN_THRESHOLD=-1 \
+  MEM_WARN_THRESHOLD=-1 \
+  DISK_WARN_THRESHOLD=-1 \
+  /home/agent-admin/agent-app/bin/monitor.sh
 ```
 
 Agent가 건강하다면:
@@ -261,12 +265,12 @@ evidence
 테스트 정의/ledger         IMPLEMENTED
 acceptance-test.sh        IMPLEMENTED
 SSH/UFW 일부              TESTED / evidence pending
-IAM/ACL runtime           TODO
-Agent runtime             TODO
-monitor runtime           TODO
-cron/logrotate runtime    TODO
-recovery runtime          TODO
-bonus fixture             TODO
+IAM/ACL runtime           NEEDS-RUNTIME
+Agent runtime             NEEDS-RUNTIME
+monitor 격리 fixture      TESTED / target NEEDS-RUNTIME
+cron/logrotate runtime    NEEDS-RUNTIME
+recovery runtime          NEEDS-RUNTIME
+bonus fixture             TESTED / evidence pending
 ```
 
 ---

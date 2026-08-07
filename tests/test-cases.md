@@ -4,12 +4,7 @@
 
 ## 상태 규칙
 
-```text
-TODO    실행 전
-PASS    실제 결과가 예상과 일치
-FAIL    예상과 다름
-BLOCKED 외부 환경·선행조건 때문에 실행 불가
-```
+진행 상태는 저장소 공통 규칙인 `TODO / IMPLEMENTED / NEEDS-RUNTIME / TESTED / PASS / BLOCKED`를 사용합니다. 실제 실행 결과의 `PASS / FAIL`은 진행 상태와 별도로 기록합니다. 예를 들어 격리 fixture가 성공했지만 target Ubuntu 검증과 evidence가 남으면 최종 요구사항은 `NEEDS-RUNTIME` 또는 `TESTED`이지 `PASS`가 아닙니다.
 
 예상 출력이나 문서 존재만으로 PASS 처리하지 않습니다.
 
@@ -19,43 +14,43 @@ BLOCKED 외부 환경·선행조건 때문에 실행 불가
 |---|---|---|---|---|
 | T-001 | 환경 | Ubuntu/Linux·systemd·sudo·필수 도구 | preflight GO 또는 설명 가능한 WARN만 존재 | `preflight.sh` |
 | T-002 | SSH | `sshd -t` 문법 | exit 0 | 수동/verify |
-| T-003 | SSH | 최종 Port/Root 정책 | `port 20022`, `permitrootlogin no` | verify |
+| T-003 | SSH | 최종 Port/Root 정책 | `port 20022`, root context의 `permitrootlogin no`, Include/Match 전체에 non-`no` override 없음 | verify |
 | T-004 | SSH | 실제 LISTEN | 20022 있음, 22 없음 | verify |
 | T-005 | SSH | 일반 사용자 새 접속 | `ssh -p 20022` 성공 | 수동 |
 | T-006 | UFW | 최종 정책 | active, default deny, 20022/15034만 허용 | verify |
-| T-007 | IAM | 사용자·그룹 멤버십 | 요구 멤버십 일치 | verify |
-| T-008 | ACL | agent-test upload 쓰기 | 성공 | acceptance |
-| T-009 | ACL | agent-test key 쓰기 | Permission denied | acceptance |
-| T-010 | ACL | agent-test log 쓰기 | Permission denied | acceptance |
+| T-007 | IAM/FS/Env | 사용자·그룹, 필수 디렉터리, env 값·메타데이터 | 두 그룹에 추가 구성원 없이 정확한 멤버십, 필수 경로의 파일 타입·owner/group/mode, 필수 env 값 일치 | verify |
+| T-008 | ACL | agent-common upload 협업 읽기·쓰기 | test가 umask 077로 생성한 파일을 dev가 읽고 append; 생성·삭제 성공 | acceptance |
+| T-009 | ACL/Key | key 값·metadata와 agent-core 협업 R/W·agent-test 차단 | secret-safe digest 일치, agent-admin:agent-core:660, admin 생성→dev append, test 읽기/쓰기 차단 | verify/acceptance |
+| T-010 | ACL | agent-core log 협업 R/W와 agent-test 차단 | admin 생성→dev append, 실제 monitor.log admin/dev R/W, test 읽기/쓰기 차단 | acceptance |
 | T-011 | Agent | 아키텍처용 실행 파일 확인 | x86→`agent-app-linux-x86`, arm64→`agent-app-linux-arm64` | 수동 |
 | T-012 | Agent | 일반 사용자 실행 | process owner != root | verify |
-| T-013 | Agent | Boot Sequence | `[1/5]~[5/5]` 모두 `[OK]` | acceptance/evidence |
+| T-013 | Agent | Boot Sequence | `[1/5]~[5/5]`가 각각 한 번, 순서대로 `[OK]` | acceptance/evidence |
 | T-014 | Agent | READY | `Agent READY` | acceptance/evidence |
 | T-015 | Agent | TCP 15034 | `0.0.0.0:15034` LISTEN | verify |
-| T-016 | Monitor | Bash 문법 | `bash -n` exit 0 | 정적 |
+| T-016 | Monitor | 저장소 Bash 문법과 배치 파일 메타데이터 | `bash -n` exit 0; target 파일은 경로·owner=agent-dev·group=agent-core·mode=750 일치 | 정적/verify |
 | T-017 | Monitor | 정상 실행 | exit 0, 로그 1줄 증가 | acceptance |
-| T-018 | Monitor | 프로세스 미검출 | exit 1 | acceptance |
-| T-019 | Monitor | 프로세스 있음·포트 미LISTEN | exit 1 | acceptance |
+| T-018 | Monitor | 프로세스 미검출·이름만 인자인 decoy | 둘 다 exit 1 | acceptance/CI |
+| T-019 | Monitor | 검증된 프로세스가 0.0.0.0:15034를 소유하지 않음 | exit 1 | acceptance/CI |
 | T-020 | Monitor | 방화벽 비활성 판정 | `[WARNING]`, health 정상 시 계속 | 통제 테스트 |
 | T-021 | Monitor | CPU 임계값 경고 | `[WARNING]`, exit 0 | acceptance |
 | T-022 | Monitor | MEM 임계값 경고 | `[WARNING]`, exit 0 | acceptance |
 | T-023 | Monitor | DISK 임계값 경고 | `[WARNING]`, exit 0 | acceptance |
 | T-024 | Monitor | 로그 포맷 | 지정 정규식 일치 | acceptance/verify |
-| T-025 | Monitor | 로그 디렉터리/파일 쓰기 불가 | exit 2, 성공으로 처리하지 않음 | 통제 테스트 |
+| T-025 | Monitor | 로그 디렉터리/파일 쓰기 불가·실제 append 실패 | exit 2, 성공으로 처리하지 않음 | 통제 테스트/CI |
 | T-026 | Cron | 최소 환경 수동 시험 | exit 0 | 수동 |
-| T-027 | Cron | agent-admin 등록 | `crontab -l` 일치 | verify |
+| T-027 | Cron | agent-admin 등록 | 안전한 `SHELL`/`PATH`/선택적 빈 `MAILTO` 뒤 정확한 job 1개, 임계값·env override 없음 | verify |
 | T-028 | Cron | 매분 자동 실행 | 1~2분 내 로그 증가 | acceptance |
 | T-029 | Logrotate | 설정 dry-run | 오류 없음 | acceptance |
 | T-030 | Logrotate | 엄격한 최대 10개 정책 | `size 10M`, `rotate 9`, current+9 | verify |
 | T-031 | Logrotate | 강제 회전 | 회전 파일 생성, 새 로그 0660 core R/W | 수동 |
-| T-032 | Recovery | 장애 후 정상 복구 | monitor exit 0 재확인 | 수동 |
+| T-032 | Recovery | SSH 백업 복구 및 monitor 장애 후 정상 복구 | 백업 설정으로 SSH 복구 가능; monitor exit 0 재확인 | 수동 |
 | T-033 | Reproduce | 새 세션/재부팅/가능하면 깨끗한 환경 | 문서만으로 재현 | 수동 |
 | T-034 | Bonus | `report.sh` 통계 | 평균/최대/최소/샘플 수 정확 | fixture |
 | T-035 | Bonus | 시간 구간 분석 | 지정 범위 샘플만 분석 | fixture |
 | T-036 | Bonus | 7일 압축·아카이브 | 대상 로그만 `.gz`로 이동 | fixture |
 | T-037 | Bonus | 30일 아카이브 삭제 | 대상 `.gz`만 삭제 | fixture |
-| T-038 | Bonus | 예외 처리 | 미존재/권한/대상 0개에서 안전한 오류·안내 | fixture |
-| T-039 | 제출안전 | 비밀 파일 추적 여부 | 실제 `.key`/`.env` 미추적 | verify/manual |
+| T-038 | Bonus | 예외 처리 | 미존재/권한/0개/명령 실패/충돌/공백/invalid·overflow retention에서 보존·명확한 종료 | fixture |
+| T-039 | 제출안전 | 비밀 파일 추적 여부 | 실제 `.key`/`*.env` 미추적, `.env.example`만 허용 | verify/manual |
 | T-040 | 최종 | 요구사항-증빙 매핑 | 필수 행 모두 근거 존재 | 수동/Codex |
 
 ---

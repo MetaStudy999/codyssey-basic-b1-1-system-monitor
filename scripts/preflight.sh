@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2015
+# /etc/os-release is a trusted OS file; PASS/WARN/FAIL helpers return success.
 set -u
 
 # Read-only B1-1 preflight checker.

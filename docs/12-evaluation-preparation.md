@@ -133,7 +133,7 @@ create 0660 agent-admin agent-core
 pgrep -f -- "$AGENT_PROCESS_PATTERN"
 ```
 
-PID를 직접 찾을 수 있고 `ps | grep | grep -v grep`보다 의도가 명확합니다. `-f`는 실제 제공 실행 파일명이 command line에 포함되는지 확인하기 위함입니다.
+PID 후보를 직접 찾을 수 있고 `ps | grep | grep -v grep`보다 의도가 명확합니다. 다만 `-f`만으로는 파일명을 인자로 가진 무관한 프로세스를 오인할 수 있으므로, 현재 구현은 후보의 `/proc/<PID>/exe`, `cmdline`, UID와 self/ancestor 여부를 추가 검사합니다.
 
 소유자 확인은:
 
@@ -146,10 +146,10 @@ ps -o user,pid,ppid,cmd -p <PID>
 ### 왜 `ss`인가?
 
 ```bash
-ss -lntH
+ss -lntp4H
 ```
 
-프로세스 존재와 별도로 실제 TCP LISTEN 상태를 확인해야 하기 때문입니다.
+프로세스 존재와 별도로 실제 TCP LISTEN 상태를 확인해야 하기 때문입니다. 또한 `-p`의 PID를 선택한 Agent PID와 연결하고 IPv4 wildcard `0.0.0.0:15034`를 요구해 무관한 리스너나 IPv6-only 리스너의 false positive를 막습니다.
 
 ### CPU
 
@@ -318,12 +318,12 @@ acceptance-test.sh = 실제 기능·장애·cron 관찰
 ```text
 평가 설명 문서       IMPLEMENTED
 SSH/UFW 실제 상태    TESTED / evidence pending
-IAM/ACL runtime      TODO
-Agent runtime        TODO
-monitor runtime      TODO
-cron/logrotate       TODO
-acceptance test      TODO
-사용자 구두 검증     TODO
+IAM/ACL runtime      NEEDS-RUNTIME
+Agent runtime        NEEDS-RUNTIME
+monitor 격리 fixture TESTED / target NEEDS-RUNTIME
+cron/logrotate       NEEDS-RUNTIME
+acceptance test      NEEDS-RUNTIME
+사용자 구두 검증     BLOCKED (runtime 선행)
 ```
 
 ---

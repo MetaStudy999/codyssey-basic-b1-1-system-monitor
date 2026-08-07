@@ -152,7 +152,7 @@ ListenStream=[::]:20022
 
 ---
 
-## 4. 실제 발생 메시지 3 — `triggering units are still active`
+## 4. 실제 SSH socket 사례의 후속 메시지 — `triggering units are still active`
 
 ### 증상
 
@@ -369,15 +369,15 @@ sudo ss -lntp | grep '<PID 또는 프로세스 관련 정보>' || true
 pgrep -af '<실제 앱 파일명>'
 ```
 
-저장소 기본값은:
+저장소 기본 선택은 현재 CPU 아키텍처에 따라 다음과 같습니다.
 
 ```text
-AGENT_PROCESS_PATTERN=agent_app.py
+x86_64 / amd64  → agent-app-linux-x86
+aarch64 / arm64 → agent-app-linux-arm64
+그 외           → 자동 추측하지 않고 설정 오류
 ```
 
-입니다.
-
-실제 제공 파일명이 다르면 환경 설정에서 정확한 파일명으로 지정합니다.
+실제 제공 파일을 직접 확인해 이름이 다를 때만 환경 설정에서 검증된 command signature를 지정합니다. `agent_app.py`는 자동 기본값이 아닙니다.
 
 패턴을 `python`처럼 지나치게 넓게 만들지 않습니다.
 
@@ -479,7 +479,7 @@ ls -l /var/log/agent-app/monitor.log
 getfacl /var/log/agent-app
 ```
 
-`create 0640 agent-admin agent-core`가 반영됐는지 확인합니다.
+`create 0660 agent-admin agent-core`가 반영됐는지 확인합니다. 회전 후 `agent-admin`과 `agent-dev`의 쓰기 허용, `agent-test`의 읽기·쓰기 차단도 실제 계정으로 재검증합니다.
 
 ---
 

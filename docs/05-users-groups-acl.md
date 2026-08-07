@@ -390,6 +390,16 @@ Permission denied
 
 각 사용자에 대해 `test -r`, `test -w` 또는 안전한 임시 파일 생성·삭제로 확인합니다.
 
+자기 파일을 자기 자신이 다시 쓰는 시험만으로는 기본 ACL을 증명할 수 없습니다. `scripts/acceptance-test.sh`는 `umask 077` 상태에서 다음 교차 사용자 흐름도 수행합니다.
+
+```text
+upload_files: agent-test 생성 → agent-dev 읽기·append
+api_keys:     agent-admin 생성 → agent-dev 읽기·append
+log dir:      agent-admin 생성 → agent-dev 읽기·append
+```
+
+또한 primary group과 supplementary member를 합쳐 `agent-common`은 정확히 3명, `agent-core`는 정확히 2명인지 확인해 예상하지 않은 core 구성원의 접근을 막습니다.
+
 ---
 
 ## 14. 전체 권한 한 번에 확인
@@ -503,13 +513,13 @@ log          → core only R/W
 
 | ID | 요구사항 | 현재 실제 상태 |
 |---|---|---|
-| `IAM-01` | 사용자 3개 생성 | `TODO` |
-| `IAM-02` | agent-common 멤버십 | `TODO` — 그룹만 생성됨 |
-| `IAM-03` | agent-core 멤버십 | `TODO` — 그룹만 생성됨 |
-| `FS-01` | 디렉터리 구조 | `TODO` |
-| `ACL-01` | upload_files common R/W | `TODO` |
-| `ACL-02` | api_keys core only R/W | `TODO` |
-| `ACL-03` | log core only R/W | `TODO` |
+| `IAM-01~03` | agent-admin/dev/test 생성 | `NEEDS-RUNTIME` |
+| `IAM-04` | agent-common 정확한 멤버십 | `NEEDS-RUNTIME` |
+| `IAM-05` | agent-core 정확한 멤버십 | `NEEDS-RUNTIME` |
+| `FS-01~04` | 필수 디렉터리 구조 | `NEEDS-RUNTIME` |
+| `ACL-01` | upload_files common 협업 R/W | `NEEDS-RUNTIME` |
+| `ACL-02` | api_keys core only 협업 R/W | `NEEDS-RUNTIME` |
+| `ACL-03` | log core only 협업 R/W | `NEEDS-RUNTIME` |
 
 실제 사용자 환경에서 위 구현·시험을 수행한 뒤 상태를 `IMPLEMENTED`/`TESTED`로 올립니다. 증빙까지 정리한 뒤 최종 `PASS`로 처리합니다.
 
@@ -577,7 +587,7 @@ sudo -u <사용자> <테스트명령>
 - [ ] 허용/차단 접근 시험
 - [ ] 11장에서 증빙 정리
 
-05단계는 **진행 중(TODO/부분 구성)**입니다.
+05단계 절차는 구현됐으며, 실제 사용자·멤버십·ACL 적용과 교차 사용자 접근 시험은 **NEEDS-RUNTIME**입니다.
 
 ---
 

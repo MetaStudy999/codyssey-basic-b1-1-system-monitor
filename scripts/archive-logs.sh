@@ -21,8 +21,14 @@ for cmd in basename find gzip mktemp mv rm; do
   command -v "$cmd" >/dev/null 2>&1 || { error "required command not found: $cmd"; exit 2; }
 done
 
-if ! [[ "$ARCHIVE_AFTER_DAYS" =~ ^[1-9][0-9]*$ && "$DELETE_AFTER_DAYS" =~ ^[1-9][0-9]*$ ]]; then
-  error 'retention day values must be positive integers'
+valid_retention_days() {
+  local value="$1"
+  [[ "$value" =~ ^[1-9][0-9]{0,4}$ ]] && (( 10#$value <= 36500 ))
+}
+
+if ! valid_retention_days "$ARCHIVE_AFTER_DAYS" \
+  || ! valid_retention_days "$DELETE_AFTER_DAYS"; then
+  error 'retention day values must be integers from 1 to 36500'
   exit 2
 fi
 if [[ "$DRY_RUN" != 0 && "$DRY_RUN" != 1 ]]; then
@@ -38,6 +44,11 @@ if [[ ! -r "$LOG_DIR" || ! -x "$LOG_DIR" ]]; then
   exit 2
 fi
 
+if [[ -L "$ARCHIVE_DIR" || ( -e "$ARCHIVE_DIR" && ! -d "$ARCHIVE_DIR" ) ]]; then
+  error "archive path must be a directory, not a symlink or other file: $ARCHIVE_DIR"
+  exit 2
+fi
+
 if [[ "$DRY_RUN" == 0 ]]; then
   if ! mkdir -p -- "$ARCHIVE_DIR"; then
     error "could not create archive directory: $ARCHIVE_DIR"
@@ -47,7 +58,7 @@ if [[ "$DRY_RUN" == 0 ]]; then
     error 'write/traverse permission is insufficient for compression or archive move'
     exit 2
   fi
-elif [[ -e "$ARCHIVE_DIR" && ( ! -r "$ARCHIVE_DIR" || ! -x "$ARCHIVE_DIR" ) ]]; then
+elif [[ -d "$ARCHIVE_DIR" && ( ! -r "$ARCHIVE_DIR" || ! -x "$ARCHIVE_DIR" ) ]]; then
   error "archive directory is not readable/traversable: $ARCHIVE_DIR"
   exit 2
 fi
@@ -83,14 +94,14 @@ SKIPPED=0
 while IFS= read -r -d '' file; do
   base="$(basename -- "$file")"
   target="${ARCHIVE_DIR}/${base}.gz"
-  if [[ -e "$target" ]]; then
+  if [[ -e "$target" || -L "$target" ]]; then
     error "archive target already exists; refusing overwrite: $target"
     SKIPPED=$((SKIPPED + 1))
     continue
   fi
 
   if [[ "$DRY_RUN" == 1 ]]; then
-    printf '[DRY-RUN] gzip -n -- %q && mv -- %q %q\n' "$file" "${file}.gz" "$target"
+    printf '[DRY-RUN] gzip -n -- %q && mv -n -- %q %q\n' "$file" "${file}.gz" "$target"
     ARCHIVED=$((ARCHIVED + 1))
     continue
   fi
@@ -101,18 +112,23 @@ while IFS= read -r -d '' file; do
     continue
   fi
 
-  if mv -- "${file}.gz" "$target"; then
-    info "archived: $target"
-    ARCHIVED=$((ARCHIVED + 1))
+  if mv -n -- "${file}.gz" "$target"; then
+    if [[ ! -e "${file}.gz" && ! -L "${file}.gz" ]]; then
+      info "archived: $target"
+      ARCHIVED=$((ARCHIVED + 1))
+      continue
+    fi
+    error "archive target appeared during move; refusing overwrite: $target"
   else
     error "move failed after compression: ${file}.gz -> $target"
-    if gzip -d -- "${file}.gz" 2>/dev/null; then
-      info "restored original after move failure: $file"
-    else
-      error "could not restore compressed source after move failure: ${file}.gz"
-    fi
-    SKIPPED=$((SKIPPED + 1))
   fi
+
+  if gzip -d -- "${file}.gz" 2>/dev/null; then
+    info "restored original after unsuccessful move: $file"
+  else
+    error "could not restore compressed source after unsuccessful move: ${file}.gz"
+  fi
+  SKIPPED=$((SKIPPED + 1))
 done < "$ARCHIVE_LIST"
 
 while IFS= read -r -d '' file; do

@@ -101,7 +101,7 @@ aarch64 / arm64 → agent-app-linux-arm64
 그 외           → [STOP] 제공 파일 호환성 확인
 ```
 
-현재 실제 실습 환경은 `x86_64`이므로 원본 데이터 설명상 `agent-app-linux-x86`이 대상입니다. 다만 실제 ZIP 내부 경로와 파일 존재 여부는 다음 단계에서 반드시 확인합니다.
+현재 실제 실습 환경은 `x86_64`이므로 `agent-app-linux-x86`이 대상입니다. Codex 독립 감사에서 ZIP을 직접 확인한 결과 두 실행 파일 모두 ZIP 최상위에 있으며, `file` 판정도 각각 x86-64/aarch64 ELF와 일치했습니다. 실제 Agent 실행·Boot 검증과 별개인 정적 확인 결과입니다.
 
 ---
 
@@ -114,13 +114,13 @@ REPO_DIR="$(git rev-parse --show-toplevel)"
 unzip -l "$REPO_DIR/agent-app.zip"
 ```
 
-확인할 항목:
+확인 결과:
 
 ```text
-agent-app-linux-x86 존재 여부
-agent-app-linux-arm64 존재 여부
-최상위 디렉터리 구조
-추가 README 또는 실행 안내
+agent-app-linux-x86       ZIP 최상위, ELF x86-64
+agent-app-linux-arm64     ZIP 최상위, ELF aarch64
+__MACOSX/                 메타데이터 엔트리, 실행 대상 아님
+추가 README               없음
 ```
 
 ZIP 목록을 확인하기 전에 내부 경로를 추측하지 않습니다.
@@ -130,22 +130,21 @@ ZIP 목록을 확인하기 전에 내부 경로를 추측하지 않습니다.
 ## 6. 임시 위치에 안전하게 해제
 
 ```bash
-rm -rf /tmp/b1-1-agent-extract
-mkdir -p /tmp/b1-1-agent-extract
-unzip -q "$REPO_DIR/agent-app.zip" -d /tmp/b1-1-agent-extract
-find /tmp/b1-1-agent-extract -maxdepth 4 -type f -print | sort
+EXTRACT_DIR="$(mktemp -d /tmp/b1-1-agent-extract.XXXXXX)"
+unzip -q "$REPO_DIR/agent-app.zip" -d "$EXTRACT_DIR"
+find "$EXTRACT_DIR" -maxdepth 4 -type f -print | sort
 ```
 
 x86_64 환경에서는:
 
 ```bash
-find /tmp/b1-1-agent-extract -type f -name 'agent-app-linux-x86' -print
+find "$EXTRACT_DIR" -type f -name 'agent-app-linux-x86' -print
 ```
 
 ARM64 환경에서는:
 
 ```bash
-find /tmp/b1-1-agent-extract -type f -name 'agent-app-linux-arm64' -print
+find "$EXTRACT_DIR" -type f -name 'agent-app-linux-arm64' -print
 ```
 
 정확히 사용할 파일 경로를 확인하지 못하면 `[STOP]`입니다.
@@ -179,16 +178,29 @@ sudo chown -R agent-admin:agent-common /home/agent-admin/agent-app
 
 ```bash
 sudo install -o agent-admin -g agent-core -m 0750 \
-  /tmp/b1-1-agent-extract/<실제경로>/agent-app-linux-x86 \
+  "$EXTRACT_DIR/agent-app-linux-x86" \
   /home/agent-admin/agent-app/agent-app-linux-x86
 ```
 
 ARM64라면 파일명만 `agent-app-linux-arm64`로 바꿉니다.
 
+배치가 끝나면 이번 실행에서 `mktemp`로 만든 경로만 정리합니다.
+
+```bash
+rm -rf -- "$EXTRACT_DIR"
+unset EXTRACT_DIR
+```
+
 배치 후 보안 디렉터리가 유지되는지 확인합니다.
 
 ```bash
 stat -c '%U:%G:%a %n' \
+  /home/agent-admin/agent-app \
+  /home/agent-admin/agent-app/upload_files \
+  /home/agent-admin/agent-app/api_keys \
+  /var/log/agent-app
+
+getfacl -p \
   /home/agent-admin/agent-app \
   /home/agent-admin/agent-app/upload_files \
   /home/agent-admin/agent-app/api_keys \
@@ -208,6 +220,8 @@ sudo install -o root -g agent-core -m 0640 \
   /etc/agent-app/agent.env
 ```
 
+이 파일은 단순 `KEY=VALUE` 데이터만 사용하며 각 키는 한 번만 둡니다. `monitor.sh`는 명령·함수·명령 치환·중복 키를 거부합니다. Agent 실행에서 `source`할 때도 `root:agent-core:0640`인 신뢰된 설치본만 읽습니다.
+
 실행 파일명은 현재 환경에 맞게 별도 설정할 수 있습니다.
 
 x86_64:
@@ -225,6 +239,8 @@ echo 'AGENT_PROCESS_PATTERN=agent-app-linux-arm64' | \
 ```
 
 `AGENT_PROCESS_PATTERN`은 제공 Agent 자체의 필수 환경변수가 아니라 `monitor.sh`가 실제 제공 파일명을 찾기 위한 저장소 확장 설정입니다.
+
+위 추가 명령은 환경 파일을 새로 설치한 직후 한 번만 실행합니다. 기존 파일을 직접 갱신할 때는 먼저 같은 키가 없는지 확인하여 중복 키를 만들지 않습니다.
 
 검증:
 
@@ -417,12 +433,12 @@ AGENT_PORT
 현재 저장소 단계:
 
 ```text
-원본 데이터 설명에서 아키텍처별 제공 파일명 확인 = 확인
-실제 ZIP 내부 경로 확인                         = TODO
-실제 Agent 배치                                = TODO
-Boot 5 [OK]                                    = TODO
-Agent READY                                     = TODO
-0.0.0.0:15034                                  = TODO
+원본 데이터 설명에서 아키텍처별 제공 파일명 확인 = TESTED
+실제 ZIP 내부 경로와 ELF 아키텍처 확인           = TESTED / evidence pending
+실제 Agent 배치                                = NEEDS-RUNTIME
+Boot 5 [OK]                                    = NEEDS-RUNTIME
+Agent READY                                     = NEEDS-RUNTIME
+0.0.0.0:15034                                  = NEEDS-RUNTIME
 ```
 
 실제 런타임 검증 전에는 `PASS`로 올리지 않습니다.
@@ -455,8 +471,8 @@ sudo ss -lntp | grep ':15034\b'
 
 - [x] 원본 데이터 설명의 x86/ARM64 제공 파일명 반영
 - [x] 재귀 `chown -R` 금지 및 보안 디렉터리 보존 원칙 반영
-- [ ] 실제 ZIP 목록 확인
-- [ ] 현재 아키텍처용 실행 파일 확인
+- [x] 실제 ZIP 목록·최상위 경로 확인
+- [x] 현재 아키텍처용 실행 파일 ELF 확인
 - [ ] Agent 파일 배치
 - [ ] 환경변수 실제 적용
 - [ ] 키 파일 생성·권한 검증

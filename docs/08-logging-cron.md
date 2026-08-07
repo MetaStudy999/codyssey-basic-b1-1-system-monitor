@@ -115,6 +115,7 @@ systemctl is-active cron
 ```
 
 Root나 현재 `ubuntu` 사용자의 crontab에 대신 설치하면 요구사항과 다릅니다.
+또한 crontab에 `CPU_WARN_THRESHOLD`, `MEM_WARN_THRESHOLD`, `DISK_WARN_THRESHOLD`나 다른 실행환경 override를 추가하지 않습니다. 위의 `SHELL`, `PATH`, 빈 `MAILTO`만 사용해야 미션의 기본 임계값 `20/10/80`과 검증된 실행환경이 유지됩니다.
 
 ---
 
@@ -267,12 +268,12 @@ sudo -u agent-admin /home/agent-admin/agent-app/bin/monitor.sh
 ```text
 crontab.example           IMPLEMENTED
 logrotate strict max-10   IMPLEMENTED
-0660 core R/W 정책        IMPLEMENTED
-실제 crontab 설치          TODO
-cron 자동 증가             TODO
-logrotate dry-run          TODO
-강제 회전                  TODO
-회전 후 monitor 재기록     TODO
+0660 core R/W 격리 fixture TESTED
+실제 crontab 설치          NEEDS-RUNTIME
+cron 자동 증가             NEEDS-RUNTIME
+실제 설정 logrotate dry-run NEEDS-RUNTIME
+실제 설정 강제 회전         NEEDS-RUNTIME
+회전 후 monitor 재기록      NEEDS-RUNTIME
 ```
 
 실제 Ubuntu 검증 전에는 `PASS`로 올리지 않습니다.

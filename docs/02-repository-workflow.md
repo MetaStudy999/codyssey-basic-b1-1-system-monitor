@@ -274,6 +274,7 @@ TODO        아직 구현 전
 IMPLEMENTED 구현됨, 실제 검증 전
 TESTED      실제 검증 성공, 증빙 정리 전
 PASS        구현 + 테스트 + 증빙 완료
+NEEDS-RUNTIME 실제 Ubuntu 없이는 수행·검증할 수 없음
 BLOCKED     외부 조건 때문에 현재 완료 불가
 ```
 

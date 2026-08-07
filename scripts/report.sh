@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -u
 
+LC_ALL=C
+export LC_ALL
+
 # B1-1 Bonus 1: summarize monitor.log statistics.
 # Usage:
-#   ./report.sh
-#   ./report.sh --log /path/to/monitor.log
-#   ./report.sh --start '2026-08-07 09:00:00' --end '2026-08-07 18:00:00'
+#   bash scripts/report.sh
+#   bash scripts/report.sh --log /path/to/monitor.log
+#   bash scripts/report.sh --start '2026-08-07 09:00:00' --end '2026-08-07 18:00:00'
 
 LOG_FILE="${MONITOR_LOG_FILE:-/var/log/agent-app/monitor.log}"
 START_TIME=""
@@ -26,7 +29,10 @@ EOF
 }
 
 valid_timestamp() {
-  [[ "$1" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]]
+  local value="$1" normalized
+  [[ "$value" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]][0-9]{2}:[0-9]{2}:[0-9]{2}$ ]] || return 1
+  normalized="$(LC_ALL=C TZ=UTC0 date -d "$value" '+%Y-%m-%d %H:%M:%S' 2>/dev/null)" || return 1
+  [[ "$normalized" == "$value" ]]
 }
 
 while (( $# > 0 )); do
@@ -57,6 +63,11 @@ while (( $# > 0 )); do
       ;;
   esac
 done
+
+if ! command -v date >/dev/null 2>&1; then
+  printf '[ERROR] required command not found: date\n' >&2
+  exit 2
+fi
 
 if [[ -n "$START_TIME" ]] && ! valid_timestamp "$START_TIME"; then
   printf '[ERROR] invalid --start format: %s\n' "$START_TIME" >&2

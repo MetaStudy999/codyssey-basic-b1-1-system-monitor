@@ -370,13 +370,16 @@ timestamp/PID를 임의 작성
 docs/reference/requirements-evidence-map.md
 ```
 
-상태는 다음 순서로 올립니다.
+상태는 다음 기준으로 관리합니다. `NEEDS-RUNTIME`과 `BLOCKED`는 완료 단계가 아니라 현재 제약을 나타냅니다.
 
 ```text
 TODO
 → IMPLEMENTED
 → TESTED
 → PASS
+
+NEEDS-RUNTIME = 실제 Ubuntu에서 수행·검증해야 함
+BLOCKED       = 외부 조건 때문에 현재 수행할 수 없음
 ```
 
 ### PASS 규칙

@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | TS-001 | `sshd -T`에서 `Missing privilege separation directory: /run/sshd` | Ubuntu 24.04.4에서 `ssh.service`가 inactive 상태라 systemd의 `RuntimeDirectory=sshd`가 아직 생성되지 않음 | 임의 `mkdir` 대신 `sudo systemctl start ssh.service`로 systemd가 런타임 디렉터리를 준비하도록 함 | 이후 `sshd -t`/`sshd -T` 성공 확인 | TESTED | `evidence/03-ssh/` 정리 필요 |
 | TS-002 | `ssh.socket changed on disk` 또는 socket 설정 반영 필요 | `Port 20022` 변경 후 systemd generator/socket 정의를 다시 읽어야 함 | `sudo systemctl daemon-reload` 후 `systemctl cat ssh.socket`과 실제 LISTEN 재확인 | `sshd-socket-generator`가 20022 주소를 생성하고 최종 20022 LISTEN 확인 | TESTED | `evidence/03-ssh/` 정리 필요 |
-| TS-003 | 첫 `ufw show added` 확인에서 `15034/tcp`가 기대대로 보이지 않음 | 규칙 적용/확인 흐름에서 15034 추가 상태를 다시 확인할 필요가 있었음 | `sudo ufw allow 15034/tcp`를 재확인 적용하고 `ufw status verbose`로 최종 정책 확인 | 20022/tcp, 15034/tcp 허용과 default deny 확인 | TESTED | `evidence/04-firewall/` 정리 필요 |
+| TS-003 | 첫 `ufw show added` 확인에서 `15034/tcp`가 기대대로 보이지 않음 | 당시 원출력 evidence가 없어 근본원인은 미확정이며, 규칙의 최종 상태 재확인이 필요했음 | `sudo ufw allow 15034/tcp`를 재확인 적용하고 `ufw status verbose`로 최종 정책 확인 | 20022/tcp, 15034/tcp 허용과 default deny 확인 | TESTED | `evidence/04-firewall/` 정리 필요 |
 
 ## 향후 실제 runtime에서 추가할 항목
 

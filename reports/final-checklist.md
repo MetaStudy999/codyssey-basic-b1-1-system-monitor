@@ -8,7 +8,7 @@
 - [x] 실제 실습 환경 Ubuntu 24.04.4 LTS를 별도 기록
 - [x] x86_64는 미션 필수조건이 아니라 실제 환경/Agent 선택 정보로 처리
 - [x] 원본 데이터 설명의 `agent-app-linux-x86` / `agent-app-linux-arm64` 반영
-- [ ] 실제 `agent-app.zip` 내부 파일/경로 확인
+- [x] 실제 `agent-app.zip` 최상위 x86/arm64 ELF 파일과 아키텍처 확인
 
 ## B. SSH
 
@@ -50,7 +50,7 @@
 - [x] Python 파일 고정 가정 제거
 - [x] 아키텍처별 제공 실행 파일 선택 절차 반영
 - [x] Agent 배치 시 `chown -R ... agent-common` 금지로 api_keys 정책 보호
-- [ ] ZIP 실제 목록 확인
+- [x] ZIP 실제 목록·경로·ELF 아키텍처 확인
 - [ ] 아키텍처 대상 실행 파일 배치
 - [ ] 환경변수 실제 적용
 - [ ] key 파일 생성 및 `agent-admin:agent-core:660`
@@ -126,7 +126,7 @@
 - [x] verify가 최종 mission PASS를 단독 선언하지 않도록 수정
 - [x] 실제 트러블슈팅 3건 보고서 반영
 - [ ] 사용자 Ubuntu에서 acceptance-test 수행
-- [ ] T-001~T-040 실제 상태 갱신
+- [x] T-001~T-040 실제/미실행/격리 상태와 exit·컨텍스트 갱신
 - [ ] 장애 복구 후 정상 재검증
 
 ## I. 재현
@@ -147,9 +147,9 @@
 - [x] 트러블슈팅 보고서 실제 이력 반영
 - [ ] TESTED인 SSH/UFW evidence 파일 생성·정리
 - [ ] IAM/Agent/monitor/cron/logrotate evidence 생성
-- [ ] tracked secret 검사
-- [ ] 실제 key/token/password 미노출 확인
-- [ ] 개인 IP/운영 로그 전체 등 불필요 정보 제거
+- [x] tracked secret 파일명·내용 검사
+- [x] 실제 key/token/password/private key 미노출 확인
+- [x] 개인 IP/운영 로그 전체 등 불필요 정보 미추적 확인
 - [ ] 필수 요구사항 추적표 모든 행 최종 PASS
 
 ## K. 평가 설명
@@ -182,8 +182,8 @@
 - [x] 동일 대상 덮어쓰기 방지
 - [x] move 실패 후 원본 복원 시도
 - [x] 대상 0개 정상 안내
-- [ ] report fixture 검증
-- [ ] archive fixture 검증
+- [x] report 통계·시간 구간·잘못된 날짜 fixture 검증
+- [x] archive 압축·30일 삭제·공백·충돌·overflow fixture 검증
 - [ ] 실제 monitor.log report 검증
 - [ ] bonus evidence
 
@@ -199,24 +199,26 @@
 - [x] P1: troubleshooting 실제 보고서 반영
 - [x] P1: 미검증 `bash -n` 완료 주장 제거/정정
 - [x] P1: bonus archive 오류 검출 보강
-- [ ] 보완 브랜치 전체 정적 재검증 결과 정리
-- [ ] Codex 독립 Audit
-- [ ] Codex BLOCKER/MAJOR 해결
+- [x] 보완 브랜치 전체 정적 재검증 결과 정리
+- [x] Codex 독립 Audit
+- [ ] Codex BLOCKER/MAJOR 해결 (코드 항목은 해결, evidence 0개 B-04 잔존)
 - [ ] 사용자 최종 인수
 
 ## 현재 판정
 
 ```text
 Repository design       IMPLEMENTED
-Pre-Codex P0/P1 fixes   IMPLEMENTED
-SSH/UFW                 TESTED / evidence pending
-IAM/ACL                 TODO
-Agent runtime           TODO
-Monitor runtime         TODO
-Cron/logrotate runtime  TODO
-Runtime acceptance      TODO
-Evidence                TODO
-Codex                    TODO
-Bonus runtime           TODO
+Codex code fixes         IMPLEMENTED / local regression TESTED
+SSH/UFW                  TESTED (reported) / evidence pending
+IAM/ACL                  NEEDS-RUNTIME
+Agent ZIP/static         TESTED
+Agent runtime            NEEDS-RUNTIME
+Monitor isolated fixture TESTED
+Monitor target runtime   NEEDS-RUNTIME
+Cron/logrotate target    NEEDS-RUNTIME
+Runtime acceptance       NEEDS-RUNTIME
+Evidence                 TODO (actual files 0)
+Codex report             TESTED
+Bonus isolated fixture   TESTED / evidence pending
 FINAL PASS               NO
 ```

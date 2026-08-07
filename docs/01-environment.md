@@ -404,7 +404,7 @@ Docker 컨테이너 또는 systemd가 활성화되지 않은 WSL 환경에서 �
 | ID | 확인 대상 | 현재 상태 |
 |---|---|---|
 | `ENV-01` | Ubuntu 22.04 또는 동등 Linux 환경 | `TESTED` |
-| `ENV-02` | Bash 기반 수행 | `TODO` — 스크립트 구현과 함께 최종 검증 |
+| `ENV-02` | Bash 기반 수행 | `TESTED` — 저장소 `bash -n`/ShellCheck, target 배치는 별도 검증 |
 | `ENV-03` | systemd·sudo·필수 도구 | `TESTED` |
 
 전체 상태는 [요구사항-구현-검증-증빙 대응표](./reference/requirements-evidence-map.md)에서 관리합니다.

@@ -21,88 +21,363 @@ jobs:
             bash -n "$file"
           done
 
+      - name: ShellCheck
+        run: shellcheck scripts/*.sh
+
       - name: Configuration invariants
         run: |
           set -euo pipefail
-          grep -Eq '^[[:space:]]*size[[:space:]]+10M([[:space:]]|$)' config/agent-monitor.logrotate
-          grep -Eq '^[[:space:]]*rotate[[:space:]]+9([[:space:]]|$)' config/agent-monitor.logrotate
-          grep -Eq '^[[:space:]]*create[[:space:]]+0660[[:space:]]+agent-admin[[:space:]]+agent-core' config/agent-monitor.logrotate
-          grep -Eq '^\* \* \* \* \* /home/agent-admin/agent-app/bin/monitor\.sh' config/crontab.example
+          test "$(grep -Fxc 'SHELL=/bin/bash' config/crontab.example)" -eq 1
+          test "$(grep -Ec '^SHELL=' config/crontab.example)" -eq 1
+          test "$(grep -Fxc 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' config/crontab.example)" -eq 1
+          test "$(grep -Ec '^PATH=' config/crontab.example)" -eq 1
+          test "$(grep -Fxc 'MAILTO=""' config/crontab.example)" -eq 1
+          test "$(grep -Ec '^MAILTO=' config/crontab.example)" -eq 1
+          test "$(grep -Fxc '* * * * * /home/agent-admin/agent-app/bin/monitor.sh >/dev/null 2>&1' config/crontab.example)" -eq 1
+          test "$(grep -Ec '^[^#]*\/home\/agent-admin\/agent-app\/bin\/monitor\.sh' config/crontab.example)" -eq 1
+          shell_line="$(grep -nFx 'SHELL=/bin/bash' config/crontab.example | cut -d: -f1)"
+          path_line="$(grep -nFx 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' config/crontab.example | cut -d: -f1)"
+          job_line="$(grep -nFx '* * * * * /home/agent-admin/agent-app/bin/monitor.sh >/dev/null 2>&1' config/crontab.example | cut -d: -f1)"
+          test "$shell_line" -lt "$job_line"
+          test "$path_line" -lt "$job_line"
+          test "$(grep -Ec '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=' config/crontab.example)" -eq 3
+          mission_key_digest="$(sed -n '162{s/^[^:]*:[[:space:]]*//; s/[[:space:]]*(1줄).*//; p;}' b1-1-mission.md | sha256sum | awk '{print $1}')"
+          acceptance_digest="$(grep -E '^MISSION_KEY_SHA256=' scripts/acceptance-test.sh | cut -d"'" -f2)"
+          verify_digest="$(grep -E '^MISSION_KEY_SHA256=' scripts/verify.sh | cut -d"'" -f2)"
+          test "${#mission_key_digest}" -eq 64
+          test "$acceptance_digest" = "$mission_key_digest"
+          test "$verify_digest" = "$mission_key_digest"
+
+      - name: verify.sh policy helper fixtures
+        run: |
+          set -euo pipefail
+          fixture_root="$(mktemp -d /tmp/b1-verify-policy.XXXXXX)"
+          fake_bin="$fixture_root/bin"
+          runner_user="$(id -un)"
+          runner_group="$(id -gn)"
+          trap 'rm -rf -- "$fixture_root"' EXIT
+          mkdir "$fake_bin" "$fixture_root/expected-directory"
+          source scripts/verify.sh
+
+          chmod 0770 "$fixture_root/expected-directory"
+          check_stat "$fixture_root/expected-directory" "$runner_user" "$runner_group" 770 directory
+          printf 'not a directory\n' > "$fixture_root/regular-file"
+          chmod 0770 "$fixture_root/regular-file"
+          if check_stat "$fixture_root/regular-file" "$runner_user" "$runner_group" 770 directory \
+            > "$fixture_root/type-rejection.out"; then
+            echo 'regular file incorrectly accepted as a required directory' >&2
+            exit 1
+          fi
+          grep -Fq 'not a directory' "$fixture_root/type-rejection.out"
+          check_stat "$fixture_root/regular-file" "$runner_user" "$runner_group" 770 regular
+
+          cat > "$fake_bin/sshd" <<'SCRIPT'
+          #!/usr/bin/env bash
+          while (( $# > 0 )); do
+            if [[ "$1" == -f && $# -ge 2 ]]; then
+              # OpenSSH debug output uses CRLF on supported Ubuntu runners.
+              printf 'debug2: load_server_config: filename %s\r\n' "$2" >&2
+              exit 0
+            fi
+            shift
+          done
+          exit 1
+          SCRIPT
+          chmod 0755 "$fake_bin/sshd"
+          cat > "$fixture_root/safe.conf" <<'CONF'
+          Port 20022
+          PermitRootLogin=no
+          Match User root Address 203.0.113.0/24
+              PermitRootLogin no
+          # PermitRootLogin yes
+          CONF
+          cat > "$fixture_root/unsafe.conf" <<'CONF'
+          Port 20022
+          PermitRootLogin no
+          Match User root Address 203.0.113.0/24
+              PermitRootLogin=yes
+          CONF
+          PATH="$fake_bin:$PATH" sshd_loaded_configs_have_only_safe_root_policy "$fixture_root/safe.conf"
+          if PATH="$fake_bin:$PATH" sshd_loaded_configs_have_only_safe_root_policy "$fixture_root/unsafe.conf"; then
+            echo 'unsafe Match-scoped PermitRootLogin override was accepted' >&2
+            exit 1
+          fi
+
+          good_cron=$'SHELL=/bin/bash\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n* * * * * /home/agent-admin/agent-app/bin/monitor.sh >/dev/null 2>&1'
+          unsafe_cron=$'SHELL=/bin/bash\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\nCPU_WARN_THRESHOLD=100\n* * * * * /home/agent-admin/agent-app/bin/monitor.sh >/dev/null 2>&1'
+          cron_policy_is_exact "$(< config/crontab.example)"
+          cron_policy_is_exact "$good_cron"
+          if cron_policy_is_exact "$unsafe_cron"; then
+            echo 'cron assignment that overrides mission thresholds was accepted' >&2
+            exit 1
+          fi
+
+      - name: logrotate max-file and mode fixture
+        run: |
+          set -euo pipefail
+          fixture_root="$(mktemp -d /tmp/b1-logrotate-fixture.XXXXXX)"
+          log_dir="$fixture_root/logs"
+          state_file="$fixture_root/status"
+          fixture_config="$fixture_root/agent-monitor.logrotate"
+          runner_user="$(id -un)"
+          runner_group="$(id -gn)"
+          trap 'rm -rf -- "$fixture_root"' EXIT
+          mkdir "$log_dir"
+          sed \
+            -e "s#/var/log/agent-app/monitor.log#$log_dir/monitor.log#" \
+            -e "s/su agent-admin agent-core/su $runner_user $runner_group/" \
+            -e "s/create 0660 agent-admin agent-core/create 0660 $runner_user $runner_group/" \
+            config/agent-monitor.logrotate > "$fixture_config"
+          printf 'state initialization\n' > "$log_dir/monitor.log"
+          logrotate -s "$state_file" "$fixture_config"
+          test ! -e "$log_dir/monitor.log.1.gz"
+          truncate -s 11M "$log_dir/monitor.log"
+          logrotate -s "$state_file" "$fixture_config"
+          test -f "$log_dir/monitor.log.1.gz"
+          test "$(stat -c '%s' "$log_dir/monitor.log")" -eq 0
+          for (( iteration = 1; iteration <= 11; iteration++ )); do
+            truncate -s 11M "$log_dir/monitor.log"
+            logrotate -f -s "$state_file" "$fixture_config"
+          done
+          test "$(find "$log_dir" -maxdepth 1 -type f -name 'monitor.log*' | wc -l)" -eq 10
+          test "$(stat -c '%a' "$log_dir/monitor.log")" = 660
+
+      - name: Boot evidence validator
+        run: |
+          set -euo pipefail
+          valid="$(mktemp /tmp/b1-boot-valid.XXXXXX)"
+          invalid="$(mktemp /tmp/b1-boot-invalid.XXXXXX)"
+          trap 'rm -f -- "$valid" "$invalid"' EXIT
+          cat > "$valid" <<'DATA'
+          [1/5] first [OK]
+          [2/5] second [OK]
+          [3/5] third [OK]
+          [4/5] fourth [OK]
+          [5/5] fifth [OK]
+          Agent READY
+          DATA
+          cat > "$invalid" <<'DATA'
+          Agent READY
+          [1/5] duplicate [OK]
+          [1/5] duplicate [OK]
+          [1/5] duplicate [OK]
+          [1/5] duplicate [OK]
+          [1/5] duplicate [OK]
+          DATA
+          bash scripts/acceptance-test.sh --boot-evidence-only --agent-boot-log "$valid"
+          set +e
+          bash scripts/acceptance-test.sh --boot-evidence-only --agent-boot-log "$invalid"
+          rc=$?
+          set -e
+          test "$rc" -eq 1
 
       - name: report.sh fixture
         run: |
           set -euo pipefail
-          cat > /tmp/monitor-fixture.log <<'DATA'
+          fixture_log="$(mktemp /tmp/b1-report-fixture.XXXXXX)"
+          trap 'rm -f -- "$fixture_log"' EXIT
+          cat > "$fixture_log" <<'DATA'
           [2026-08-07 10:00:00] PID:100 CPU:10.00% MEM:20.00% DISK_USED:30%
           [2026-08-07 11:00:00] PID:100 CPU:20.00% MEM:30.00% DISK_USED:40%
           [2026-08-07 12:00:00] PID:100 CPU:30.00% MEM:40.00% DISK_USED:50%
           DATA
-          output="$(bash scripts/report.sh --log /tmp/monitor-fixture.log)"
+          output="$(bash scripts/report.sh --log "$fixture_log")"
           echo "$output"
           grep -Fq 'samples=3' <<<"$output"
           grep -Fq 'CPU  avg=20.00%' <<<"$output"
           grep -Fq 'MEM  avg=30.00%' <<<"$output"
           grep -Fq 'DISK avg=40.00%' <<<"$output"
+          interval="$(bash scripts/report.sh \
+            --log "$fixture_log" \
+            --start '2026-08-07 11:00:00' \
+            --end '2026-08-07 12:00:00')"
+          grep -Fq 'samples=2' <<<"$interval"
+          grep -Fq 'CPU  avg=25.00%' <<<"$interval"
+          set +e
+          bash scripts/report.sh \
+            --log "$fixture_log" \
+            --start '2026-02-30 00:00:00'
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          set +e
+          bash scripts/report.sh \
+            --log "$fixture_log" \
+            --start '2026-08-07 12:00:00' \
+            --end '2026-08-07 11:00:00'
+          rc=$?
+          set -e
+          test "$rc" -eq 2
 
       - name: archive-logs.sh fixture
         run: |
           set -euo pipefail
-          rm -rf /tmp/b1-logs /tmp/b1-archive
-          mkdir -p /tmp/b1-logs /tmp/b1-archive
-          printf 'old\n' > /tmp/b1-logs/old.log
-          printf 'new\n' > /tmp/b1-logs/new.log
-          touch -d '8 days ago' /tmp/b1-logs/old.log
-          AGENT_LOG_DIR=/tmp/b1-logs AGENT_ARCHIVE_DIR=/tmp/b1-archive bash scripts/archive-logs.sh
-          test -f /tmp/b1-archive/old.log.gz
-          test -f /tmp/b1-logs/new.log
-          test ! -e /tmp/b1-logs/old.log
-          touch -d '31 days ago' /tmp/b1-archive/old.log.gz
-          AGENT_LOG_DIR=/tmp/b1-logs AGENT_ARCHIVE_DIR=/tmp/b1-archive bash scripts/archive-logs.sh
-          test ! -e /tmp/b1-archive/old.log.gz
+          fixture_root="$(mktemp -d /tmp/b1-archive-fixture.XXXXXX)"
+          log_dir="$fixture_root/logs"
+          archive_dir="$fixture_root/archive"
+          trap 'rm -rf -- "$fixture_root"' EXIT
+          mkdir "$log_dir" "$archive_dir"
+          empty_output="$(AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$archive_dir" DRY_RUN=1 bash scripts/archive-logs.sh)"
+          grep -Fq 'no files matched the retention policy' <<<"$empty_output"
+          printf 'old\n' > "$log_dir/old file.log"
+          printf 'new\n' > "$log_dir/new.log"
+          touch -d '8 days ago' "$log_dir/old file.log"
+          AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$archive_dir" bash scripts/archive-logs.sh
+          test -f "$archive_dir/old file.log.gz"
+          test -f "$log_dir/new.log"
+          test ! -e "$log_dir/old file.log"
+          touch -d '31 days ago' "$archive_dir/old file.log.gz"
+          AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$archive_dir" bash scripts/archive-logs.sh
+          test ! -e "$archive_dir/old file.log.gz"
+
+          printf 'collision\n' > "$log_dir/collision.log"
+          touch -d '8 days ago' "$log_dir/collision.log"
+          ln -s missing-target "$archive_dir/collision.log.gz"
+          set +e
+          AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$archive_dir" bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 1
+          test -f "$log_dir/collision.log"
+          test -L "$archive_dir/collision.log.gz"
+
+          dangling_archive="$fixture_root/dangling-archive"
+          ln -s missing-directory "$dangling_archive"
+          set +e
+          AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$dangling_archive" DRY_RUN=1 bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+
+          AGENT_LOG_DIR="$log_dir" \
+            AGENT_ARCHIVE_DIR="$archive_dir" \
+            ARCHIVE_AFTER_DAYS=36500 \
+            DELETE_AFTER_DAYS=36500 \
+            DRY_RUN=1 \
+            bash scripts/archive-logs.sh >/dev/null
+          set +e
+          AGENT_LOG_DIR="$log_dir" \
+            AGENT_ARCHIVE_DIR="$archive_dir" \
+            ARCHIVE_AFTER_DAYS=36501 \
+            DELETE_AFTER_DAYS=36501 \
+            DRY_RUN=1 \
+            bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+
+          fake_bin="$fixture_root/fake-bin"
+          mkdir "$fake_bin"
+          cat > "$fake_bin/find" <<'SCRIPT'
+          #!/usr/bin/env bash
+          exit 1
+          SCRIPT
+          chmod 0755 "$fake_bin/find"
+          set +e
+          PATH="$fake_bin:$PATH" AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$archive_dir" DRY_RUN=1 bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+
+          restricted_dir="$fixture_root/restricted"
+          mkdir "$restricted_dir"
+          chmod 0000 "$restricted_dir"
+          set +e
+          AGENT_LOG_DIR="$restricted_dir" AGENT_ARCHIVE_DIR="$archive_dir" DRY_RUN=1 bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          chmod 0700 "$restricted_dir"
+          test "$rc" -eq 2
+
+          regular_archive="$fixture_root/not-a-directory"
+          printf 'not a directory\n' > "$regular_archive"
+          chmod 0700 "$regular_archive"
+          set +e
+          AGENT_LOG_DIR="$log_dir" AGENT_ARCHIVE_DIR="$regular_archive" DRY_RUN=1 bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+
+          set +e
+          AGENT_LOG_DIR="$log_dir" \
+            AGENT_ARCHIVE_DIR="$archive_dir" \
+            ARCHIVE_AFTER_DAYS=18446744073709551617 \
+            DELETE_AFTER_DAYS=18446744073709551617 \
+            DRY_RUN=1 \
+            bash scripts/archive-logs.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
 
       - name: monitor process and port failures
         run: |
           set -euo pipefail
-          mkdir -p /tmp/b1-monitor
+          fixture_root="$(mktemp -d /tmp/b1-monitor-failure.XXXXXX)"
+          trap 'test -z "${sleep_pid:-}" || kill "$sleep_pid" 2>/dev/null || true; test -z "${tail_pid:-}" || kill "$tail_pid" 2>/dev/null || true; rm -rf -- "$fixture_root"' EXIT
           set +e
           AGENT_ENV_FILE=/nonexistent \
           AGENT_PROCESS_PATTERN='__b1_missing_process__' \
           AGENT_PORT=15034 \
-          AGENT_LOG_DIR=/tmp/b1-monitor \
-          bash scripts/monitor.sh
+          AGENT_LOG_DIR="$fixture_root" \
+          bash scripts/monitor.sh >"$fixture_root/missing.out" 2>"$fixture_root/missing.err"
           rc=$?
           set -e
           test "$rc" -eq 1
+          grep -Fq 'Agent process not found' "$fixture_root/missing.err"
 
           sleep 120 &
           sleep_pid=$!
-          trap 'kill "$sleep_pid" 2>/dev/null || true' EXIT
           set +e
           AGENT_ENV_FILE=/nonexistent \
           AGENT_PROCESS_PATTERN='sleep 120' \
           AGENT_PORT=65534 \
-          AGENT_LOG_DIR=/tmp/b1-monitor \
-          bash scripts/monitor.sh
+          AGENT_LOG_DIR="$fixture_root" \
+          bash scripts/monitor.sh >"$fixture_root/port.out" 2>"$fixture_root/port.err"
           rc=$?
           set -e
           test "$rc" -eq 1
+          kill -0 "$sleep_pid"
+          grep -Fq 'no matching Agent PID owns' "$fixture_root/port.err"
           kill "$sleep_pid" 2>/dev/null || true
           wait "$sleep_pid" 2>/dev/null || true
-          trap - EXIT
+          sleep_pid=""
+
+          touch "$fixture_root/agent-app-linux-x86"
+          tail -f "$fixture_root/agent-app-linux-x86" >/dev/null 2>&1 &
+          tail_pid=$!
+          set +e
+          AGENT_ENV_FILE=/nonexistent \
+          AGENT_PROCESS_PATTERN='agent-app-linux-x86' \
+          AGENT_PORT=15034 \
+          AGENT_LOG_DIR="$fixture_root" \
+          bash scripts/monitor.sh >"$fixture_root/decoy.out" 2>"$fixture_root/decoy.err"
+          rc=$?
+          set -e
+          test "$rc" -eq 1
+          grep -Fq 'Agent process not found' "$fixture_root/decoy.err"
 
       - name: monitor normal warning and log-write failure
         run: |
           set -euo pipefail
-          mkdir -p /tmp/b1-monitor-ok
-          python3 -m http.server 15034 --bind 0.0.0.0 >/tmp/b1-http.log 2>&1 &
+          fixture_root="$(mktemp -d /tmp/b1-monitor-normal.XXXXXX)"
+          log_dir="$fixture_root/logs"
+          listener_dir="$fixture_root/listener"
+          nonlistener_dir="$fixture_root/nonlistener"
+          mkdir "$log_dir" "$listener_dir" "$nonlistener_dir"
+          cp -- "$(command -v python3)" "$listener_dir/agent-app-linux-x86"
+          cp -- "$(command -v python3)" "$nonlistener_dir/agent-app-linux-x86"
+          chmod 0755 "$listener_dir/agent-app-linux-x86" "$nonlistener_dir/agent-app-linux-x86"
+          "$nonlistener_dir/agent-app-linux-x86" -c 'import time; time.sleep(120)' &
+          nonlistener_pid=$!
+          "$listener_dir/agent-app-linux-x86" -m http.server 15034 --bind 0.0.0.0 >"$fixture_root/http.log" 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          trap 'kill "$server_pid" "$nonlistener_pid" 2>/dev/null || true; rm -rf -- "$fixture_root"' EXIT
           sleep 1
 
           output="$(AGENT_ENV_FILE=/nonexistent \
-            AGENT_PROCESS_PATTERN='python3 -m http.server 15034' \
+            AGENT_PROCESS_PATTERN='agent-app-linux-x86' \
             AGENT_PORT=15034 \
-            AGENT_LOG_DIR=/tmp/b1-monitor-ok \
+            AGENT_LOG_DIR="$log_dir" \
             CPU_WARN_THRESHOLD=-1 \
             MEM_WARN_THRESHOLD=-1 \
             DISK_WARN_THRESHOLD=-1 \
@@ -111,16 +386,137 @@ jobs:
           grep -Fq '[WARNING] CPU usage' <<<"$output"
           grep -Fq '[WARNING] MEM usage' <<<"$output"
           grep -Fq '[WARNING] DISK_USED' <<<"$output"
-          test -s /tmp/b1-monitor-ok/monitor.log
+          test -s "$log_dir/monitor.log"
 
-          chmod 0444 /tmp/b1-monitor-ok/monitor.log
+          fake_bin="$fixture_root/firewall-bin"
+          mkdir "$fake_bin"
+          cat > "$fake_bin/ufw" <<'SCRIPT'
+          #!/usr/bin/env bash
+          printf 'Status: inactive\n'
+          SCRIPT
+          cat > "$fake_bin/systemctl" <<'SCRIPT'
+          #!/usr/bin/env bash
+          exit 3
+          SCRIPT
+          cat > "$fake_bin/firewall-cmd" <<'SCRIPT'
+          #!/usr/bin/env bash
+          exit 1
+          SCRIPT
+          chmod 0755 "$fake_bin/ufw" "$fake_bin/systemctl" "$fake_bin/firewall-cmd"
+          firewall_output="$(PATH="$fake_bin:$PATH" \
+            AGENT_ENV_FILE=/nonexistent \
+            AGENT_PROCESS_PATTERN='agent-app-linux-x86' \
+            AGENT_PORT=15034 \
+            AGENT_LOG_DIR="$log_dir" \
+            CPU_WARN_THRESHOLD=100 \
+            MEM_WARN_THRESHOLD=100 \
+            DISK_WARN_THRESHOLD=100 \
+            bash scripts/monitor.sh)"
+          grep -Fq '[WARNING] firewall is inactive or could not be confirmed active' <<<"$firewall_output"
+
+          chmod 0444 "$log_dir/monitor.log"
           set +e
           AGENT_ENV_FILE=/nonexistent \
-          AGENT_PROCESS_PATTERN='python3 -m http.server 15034' \
-          AGENT_PORT=15034 \
-          AGENT_LOG_DIR=/tmp/b1-monitor-ok \
-          bash scripts/monitor.sh >/tmp/b1-monitor-write.out 2>/tmp/b1-monitor-write.err
+            AGENT_PROCESS_PATTERN='agent-app-linux-x86' \
+            AGENT_PORT=15034 \
+            AGENT_LOG_DIR="$log_dir" \
+            bash scripts/monitor.sh >"$fixture_root/write.out" 2>"$fixture_root/write.err"
           rc=$?
           set -e
           test "$rc" -eq 2
-          grep -Fq 'log file exists but is not writable' /tmp/b1-monitor-write.err
+          grep -Fq 'log file exists but is not writable' "$fixture_root/write.err"
+
+          full_dir="$fixture_root/full"
+          mkdir "$full_dir"
+          ln -s /dev/full "$full_dir/monitor.log"
+          set +e
+          AGENT_ENV_FILE=/nonexistent \
+            AGENT_PROCESS_PATTERN='agent-app-linux-x86' \
+            AGENT_PORT=15034 \
+            AGENT_LOG_DIR="$full_dir" \
+            bash scripts/monitor.sh >"$fixture_root/full.out" 2>"$fixture_root/full.err"
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -Fq 'failed to append log' "$fixture_root/full.err"
+
+      - name: monitor invalid config and collection failure
+        run: |
+          set -euo pipefail
+          fixture_root="$(mktemp -d /tmp/b1-monitor-invalid.XXXXXX)"
+          fake_bin="$fixture_root/bin"
+          mkdir "$fake_bin"
+          cp -- "$(command -v python3)" "$fixture_root/agent-app-linux-x86"
+          chmod 0755 "$fixture_root/agent-app-linux-x86"
+          "$fixture_root/agent-app-linux-x86" -m http.server 15034 --bind 0.0.0.0 >"$fixture_root/http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; rm -rf -- "$fixture_root"' EXIT
+          sleep 1
+
+          for assignment in 'AGENT_PORT=15034|22' 'DISK_WARN_THRESHOLD=bogus'; do
+            set +e
+            env AGENT_ENV_FILE=/nonexistent \
+              AGENT_PROCESS_PATTERN='agent-app-linux-x86 -m http.server 15034' \
+              AGENT_PORT=15034 \
+              AGENT_LOG_DIR="$fixture_root" \
+              "$assignment" \
+              bash scripts/monitor.sh
+            rc=$?
+            set -e
+            test "$rc" -eq 2
+          done
+
+          cat > "$fake_bin/df" <<'SCRIPT'
+          #!/usr/bin/env bash
+          exit 1
+          SCRIPT
+          chmod 0755 "$fake_bin/df"
+          set +e
+          PATH="$fake_bin:$PATH" \
+            AGENT_ENV_FILE=/nonexistent \
+            AGENT_PROCESS_PATTERN='agent-app-linux-x86 -m http.server 15034' \
+            AGENT_PORT=15034 \
+            AGENT_LOG_DIR="$fixture_root" \
+            bash scripts/monitor.sh >"$fixture_root/df.out" 2>"$fixture_root/df.err"
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -Fq 'failed to collect a valid root DISK_USED percentage' "$fixture_root/df.err"
+
+          marker="$fixture_root/env-code-ran"
+          cat > "$fixture_root/unsafe.env" <<ENV
+          AGENT_PORT=15034
+          touch $marker
+          ENV
+          set +e
+          AGENT_ENV_FILE="$fixture_root/unsafe.env" bash scripts/monitor.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          test ! -e "$marker"
+
+          cat > "$fixture_root/duplicate.env" <<'ENV'
+          AGENT_PORT=15034
+          AGENT_PORT=15035
+          ENV
+          set +e
+          AGENT_ENV_FILE="$fixture_root/duplicate.env" bash scripts/monitor.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+
+          printf 'AGENT_PORT=15034\n' > "$fixture_root/regular.env"
+          ln -s regular.env "$fixture_root/symlink.env"
+          set +e
+          AGENT_ENV_FILE="$fixture_root/symlink.env" bash scripts/monitor.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+
+          printf 'AGENT_PORT=15034\n' > "$fixture_root/group-writable.env"
+          chmod 0660 "$fixture_root/group-writable.env"
+          set +e
+          AGENT_ENV_FILE="$fixture_root/group-writable.env" bash scripts/monitor.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 2

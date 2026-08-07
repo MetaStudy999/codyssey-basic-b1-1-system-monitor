@@ -224,10 +224,10 @@ preflight.sh       IMPLEMENTED
 verify.sh          IMPLEMENTED
 acceptance-test.sh IMPLEMENTED
 보완 브랜치 Bash 구문 검사  수행
-사용자 Ubuntu 전체 재현      TODO
-재부팅 후 검증               TODO
-깨끗한 Ubuntu 재현           TODO
-최종 evidence                 TODO
+사용자 Ubuntu 전체 재현      NEEDS-RUNTIME
+재부팅 후 검증               NEEDS-RUNTIME
+깨끗한 Ubuntu 재현           NEEDS-RUNTIME
+최종 evidence                 TODO (actual files 0)
 ```
 
 보완 브랜치에서 수행한 정적검증과 사용자 Ubuntu의 최종 증빙은 구분해 기록합니다.

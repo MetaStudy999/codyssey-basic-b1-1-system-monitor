@@ -62,7 +62,7 @@ x86_64 / amd64  → agent-app-linux-x86
 aarch64 / arm64 → agent-app-linux-arm64
 ```
 
-따라서 `monitor.sh`는 `AGENT_PROCESS_PATTERN`이 명시되면 그 값을 우선 사용하고, 없으면 아키텍처에 따라 위 파일명을 기본값으로 선택합니다. 그 외 환경에서는 원본 문구의 예시인 `agent_app.py`를 fallback으로 사용합니다.
+따라서 `monitor.sh`는 `AGENT_PROCESS_PATTERN`이 명시되면 검증된 command signature로 사용하고, 없으면 아키텍처에 따라 위 파일명을 선택합니다. 그 외 아키텍처에서는 임의 Python 파일을 추측하지 않고 설정 오류(`exit 2`)로 종료합니다.
 
 실제 ZIP을 확인한 뒤 `/etc/agent-app/agent.env`에 다음처럼 명시하는 것을 권장합니다.
 
@@ -80,7 +80,7 @@ AGENT_PROCESS_PATTERN=agent-app-linux-x86
 /etc/agent-app/agent.env
 ```
 
-cron의 최소 환경에서도 동작하도록 `monitor.sh`가 직접 읽습니다.
+cron의 최소 환경에서도 동작하도록 `monitor.sh`가 직접 읽습니다. 단, 셸 코드로 `source`하지 않고 허용된 Agent 단순 `KEY=VALUE`만 파싱합니다. symlink, 명령·함수, 알 수 없는 키와 중복 키는 거부하며 실제 파일은 `root:agent-core:0640`으로 검증합니다. 미션 임계값 20/10/80을 설정 파일이 바꾸지 못하도록 threshold override는 이 파일에서 허용하지 않고 격리 테스트의 프로세스 환경에서만 사용합니다.
 
 기본 핵심값:
 
@@ -94,11 +94,13 @@ AGENT_LOG_DIR=/var/log/agent-app
 
 ## 5. 프로세스 Health Check
 
-핵심 명령:
+첫 후보 검색 명령:
 
 ```bash
 pgrep -f -- "$AGENT_PROCESS_PATTERN"
 ```
+
+`pgrep -f` 결과만 신뢰하지 않습니다. 각 후보에서 `/proc/<PID>/exe`, NUL 구분 `cmdline`, UID를 확인해 실제 실행 파일/command signature가 일치하고 monitor 자신·부모 셸이 아니며 실행 계정과 같은 PID만 선택합니다. 따라서 파일 경로를 인자로 가진 `tail`, grep류 명령은 Agent로 오인하지 않습니다.
 
 프로세스를 찾지 못하면:
 
@@ -109,7 +111,7 @@ exit 1
 
 입니다.
 
-`pgrep`는 PID를 직접 찾을 수 있어 `ps | grep`보다 목적이 분명합니다. 실제 소유자는 검증 단계에서 `ps`로 다시 확인합니다.
+`pgrep`는 후보 PID를 좁히는 데 사용하고, `/proc` 검사는 신원을 확정하는 데 사용합니다. 실제 소유자는 `verify.sh`에서도 `ps`로 다시 확인합니다.
 
 ---
 
@@ -118,19 +120,19 @@ exit 1
 핵심 명령:
 
 ```bash
-ss -lntH
+ss -lntp4H
 ```
 
-`AGENT_PORT=15034`가 LISTEN하지 않으면:
+선택한 Agent PID가 IPv4 wildcard `0.0.0.0:15034` LISTEN을 소유하지 않으면:
 
 ```text
-[ERROR] Agent port is not LISTEN: tcp/15034
+[ERROR] Agent PID ... does not own 0.0.0.0:15034 LISTEN
 exit 1
 ```
 
 입니다.
 
-프로세스 존재와 서비스 포트 LISTEN은 서로 다른 상태이므로 둘 다 확인합니다.
+프로세스 존재와 서비스 포트 LISTEN은 서로 다른 상태이므로 둘 다 확인하고, 무관한 두 프로세스가 각각 조건 하나씩을 만족하는 false positive를 막기 위해 PID까지 연결합니다. 숫자가 아니거나 `1~65535` 밖인 포트 값은 정규식으로 사용하지 않고 설정 오류로 거부합니다.
 
 ---
 
@@ -157,6 +159,8 @@ snapshot 1
 
 `guest` 계열 값을 중복 합산하지 않도록 user~steal 범위를 사용합니다.
 
+두 snapshot의 counter 차이가 0 이하이거나 결과가 `0~100` 범위를 벗어나면 `0%`로 꾸미지 않고 `exit 2`로 종료합니다.
+
 ---
 
 ## 9. 메모리 사용률
@@ -174,6 +178,8 @@ MemAvailable
 MEM% = (MemTotal - MemAvailable) / MemTotal × 100
 ```
 
+`MemAvailable` 또는 `MemTotal`이 없거나 범위가 잘못되면 빈 값/100%를 기록하지 않고 수집 실패로 처리합니다.
+
 ---
 
 ## 10. Root 디스크 사용률
@@ -183,6 +189,8 @@ df -P /
 ```
 
 에서 `/`의 `Use%`를 추출합니다. 원본 요구사항의 **Root partition Used %**에 직접 대응합니다.
+
+`LC_ALL=C`, `df -P`로 형식을 고정하고 `df` 종료 코드와 `Use%` 숫자 범위를 모두 검사합니다.
 
 ---
 
@@ -253,7 +261,7 @@ bash -n scripts/monitor.sh
 shellcheck scripts/monitor.sh
 ```
 
-> 이 문서에는 아직 사용자 Ubuntu 환경에서 실행하지 않은 정적검증을 완료 사실처럼 기록하지 않습니다. 실제 실행 결과를 확보한 뒤 `TESTED`/`PASS`로 갱신합니다.
+Codex 감사 환경과 GitHub Actions에서는 저장소 작성본의 구문·격리 테스트를 실행했습니다. 실제 배치본과 사용자 Ubuntu runtime은 별도 `NEEDS-RUNTIME`이며, 정적 성공만으로 최종 `PASS`가 되지 않습니다.
 
 ---
 
@@ -317,7 +325,7 @@ sudo bash scripts/acceptance-test.sh \
 프로세스 있음 + 미사용 포트 → exit 1
 임계값 override → WARNING + exit 0
 로그 포맷
-ACL 허용/차단
+ACL 허용 사용자 R/W와 agent-test 읽기·쓰기 차단
 cron 자동 증가
 ```
 
@@ -331,11 +339,12 @@ cron 자동 증가
 
 ```text
 monitor.sh 구현            IMPLEMENTED
-저장소 Bash 문법 자체검사   보완 브랜치에서 수행
-실제 Ubuntu 배치           TODO
-실제 Agent 연동            TODO
-실제 장애/경고 테스트       TODO
-증빙                         TODO
+저장소 Bash/ShellCheck      TESTED
+격리 장애/경고 fixture       TESTED
+실제 Ubuntu 배치           NEEDS-RUNTIME
+실제 Agent 연동            NEEDS-RUNTIME
+실제 장애/경고 테스트       NEEDS-RUNTIME
+증빙                         TODO (actual files 0)
 ```
 
 최종 `PASS`는 실제 Ubuntu 결과와 evidence가 연결된 뒤 부여합니다.
@@ -358,7 +367,7 @@ HEALTH · WARNING · LOG
 
 ```bash
 pgrep -f
-ss -lntH
+ss -lntp4H
 tail -n 1 /var/log/agent-app/monitor.log
 ```
 

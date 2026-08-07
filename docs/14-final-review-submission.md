@@ -193,7 +193,8 @@ docs/reference/requirements-evidence-map.md
 ## 9. 민감정보
 
 ```bash
-git ls-files | grep -E '(^|/)([^/]*\.key|\.env($|\.))' || true
+git ls-files | grep -E '(^|/)([^/]*\.key|[^/]*\.env($|\.))' \
+  | grep -vE '\.env\.example$' || true
 ```
 
 허용 예시는 `.env.example`입니다.
@@ -259,14 +260,15 @@ logrotate
 ```text
 Pre-Codex 코드/문서 보완   진행 완료 단계
 SSH/UFW                   TESTED / evidence pending
-IAM/ACL                   TODO
-Agent runtime             TODO
-monitor runtime           TODO
-cron/logrotate runtime    TODO
-acceptance runtime        TODO
-전체 evidence             TODO
-Codex audit               TODO
-사용자 acceptance         TODO
+IAM/ACL                   NEEDS-RUNTIME
+Agent ZIP/static          TESTED
+Agent runtime             NEEDS-RUNTIME
+monitor 격리 fixture      TESTED / target NEEDS-RUNTIME
+cron/logrotate runtime    NEEDS-RUNTIME
+acceptance runtime        NEEDS-RUNTIME
+전체 evidence             TODO (actual files 0)
+Codex audit               TESTED
+사용자 acceptance         BLOCKED (runtime 선행)
 FINAL PASS                NO
 ```
 
