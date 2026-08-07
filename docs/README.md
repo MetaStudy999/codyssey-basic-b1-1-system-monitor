@@ -4,33 +4,77 @@
 
 `사전 확인 → 실행 → 정상 결과 비교 → GO/STOP 판정 → 오류 해결 → 복구 → 재검증 → 증빙`
 
+각 단계는 **구현 + 테스트 + 증빙**이 모두 갖춰져야 `PASS`로 처리합니다.
+
+## 기억 구조: `00 + 5 × 3`
+
+`00`은 전체 지도입니다. 실제 수행 단계 `01~15`는 15개를 따로 외우지 않고 5개 묶음으로 기억합니다.
+
+```text
+00 전체 지도
+
+① 준비와 접근      01 환경 → 02 저장소 → 03 SSH
+② 시스템 구성      04 방화벽 → 05 권한 → 06 Agent
+③ 구현과 자동화    07 Monitor → 08 자동화 → 09 테스트
+④ 검증과 평가      10 장애 → 11 증빙 → 12 평가
+⑤ 완성과 고도화    13 재현 → 14 제출 → 15 보너스
+```
+
+### 한 문장 기억법
+
+> **환경을 준비하고 → 시스템을 구성하고 → 모니터를 구현하고 → 검증하고 → 재현·제출·고도화한다.**
+
 ## 전체 진행 상태
 
-### 1단계 — 시작 준비
+### 00 — 전체 지도
 - [ ] [00. 시작 안내](./00-start-here.md)
-- [ ] [01. 환경 준비](./01-environment.md)
-- [ ] [02. 저장소 작업 체계](./02-repository-workflow.md)
 
-### 2단계 — 시스템 구성
-- [ ] [03. SSH 보안](./03-ssh-security.md)
-- [ ] [04. 방화벽과 네트워크](./04-firewall-network.md)
-- [ ] [05. 사용자·그룹·ACL](./05-users-groups-acl.md)
-- [ ] [06. Agent 실행환경](./06-agent-setup.md)
+### 1단계 — 준비와 접근 `01~03`
+- [ ] [01. 환경 준비](./01-environment.md) — 환경
+- [ ] [02. 저장소 작업 체계](./02-repository-workflow.md) — 기록
+- [ ] [03. SSH 보안](./03-ssh-security.md) — 접속
 
-### 3단계 — 핵심 구현
-- [ ] [07. monitor.sh](./07-monitor-script.md)
-- [ ] [08. 로그와 cron](./08-logging-cron.md)
+### 2단계 — 시스템 구성 `04~06`
+- [ ] [04. 방화벽과 네트워크](./04-firewall-network.md) — 문
+- [ ] [05. 사용자·그룹·ACL](./05-users-groups-acl.md) — 권한
+- [ ] [06. Agent 실행환경](./06-agent-setup.md) — 프로그램
 
-### 4단계 — 검증과 복구
-- [ ] [09. 정상·장애·복구 테스트](./09-testing-recovery.md)
-- [ ] [10. 트러블슈팅](./10-troubleshooting.md)
+### 3단계 — 구현과 자동화 `07~09`
+- [ ] [07. monitor.sh](./07-monitor-script.md) — 감시
+- [ ] [08. 로그와 cron](./08-logging-cron.md) — 반복
+- [ ] [09. 정상·장애·복구 테스트](./09-testing-recovery.md) — 시험
 
-### 5단계 — 제출 완성
-- [ ] [11. 수행 내역과 증빙](./11-execution-evidence.md)
-- [ ] [12. 평가 대비](./12-evaluation-preparation.md)
-- [ ] [13. 재현 시험](./13-reproducibility-test.md)
-- [ ] [14. 최종 검수와 제출](./14-final-review-submission.md)
-- [ ] [15. 보너스](./15-bonus.md)
+### 4단계 — 검증과 평가 `10~12`
+- [ ] [10. 트러블슈팅](./10-troubleshooting.md) — 고치기
+- [ ] [11. 수행 내역과 증빙](./11-execution-evidence.md) — 증명
+- [ ] [12. 평가 대비](./12-evaluation-preparation.md) — 평가
+
+### 5단계 — 완성과 고도화 `13~15`
+- [ ] [13. 재현 시험](./13-reproducibility-test.md) — 다시
+- [ ] [14. 최종 검수와 제출](./14-final-review-submission.md) — 완성
+- [ ] [15. 보너스](./15-bonus.md) — 확장
+
+## 문서 공통 형식
+
+각 `01~15` 문서는 가능한 한 같은 학습 패턴을 사용합니다.
+
+`목표 → 이해 → 실행 → 확인 → 오류·복구 → 기억`
+
+각 문서 마지막에는 다음 기억 장치를 둡니다.
+
+- 한 문장
+- 핵심어 3개
+- 핵심 명령 또는 핵심 동작
+- 스스로 설명할 질문
+- 다음 단계
+
+## 요구사항 누락 방지
+
+원본 미션과 평가 항목은 문서 목차와 별도로 추적합니다.
+
+`원본 요구사항 ↔ 구현 파일 ↔ 검증 명령/테스트 ↔ 증빙 ↔ 평가 항목`
+
+모든 연결은 [요구사항-검증-증빙 대응표](./reference/requirements-evidence-map.md)에서 관리합니다.
 
 ## 참고 자료
 
@@ -38,4 +82,4 @@
 - [환경별 차이](./reference/environment-differences.md)
 - [백업과 복구](./reference/backup-recovery.md)
 - [오류 색인](./reference/error-index.md)
-- [요구사항-증빙 대응표](./reference/requirements-evidence-map.md)
+- [요구사항-검증-증빙 대응표](./reference/requirements-evidence-map.md)

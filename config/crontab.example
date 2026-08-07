@@ -1,4 +1,10 @@
-# agent-admin 계정의 crontab 예시 골격
-# 실제 절대경로와 환경변수 전달 방식은 docs/08-logging-cron.md에서 검증 후 작성합니다.
+# B1-1 agent-admin crontab
+# Install with: sudo -u agent-admin crontab < config/crontab.example
 
-# * * * * * /absolute/path/to/monitor.sh
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+
+# Run monitor.sh every minute.
+# monitor.sh loads /etc/agent-app/agent.env itself so it does not depend on an interactive login shell.
+* * * * * /home/agent-admin/agent-app/bin/monitor.sh >/dev/null 2>&1

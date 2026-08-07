@@ -1,5 +1,5 @@
-# logrotate 설정 골격
-# 실제 로그 경로, 소유자, 그룹은 docs/08-logging-cron.md에서 검증 후 확정합니다.
+# B1-1 monitor.log rotation policy
+# Install as /etc/logrotate.d/agent-monitor
 
 /var/log/agent-app/monitor.log {
     size 10M
@@ -7,4 +7,6 @@
     compress
     missingok
     notifempty
+    su agent-admin agent-core
+    create 0640 agent-admin agent-core
 }
