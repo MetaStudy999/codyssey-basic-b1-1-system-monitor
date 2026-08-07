@@ -1,0 +1,26 @@
+# 실제 비밀정보
+.env
+.env.*
+!*.env.example
+*.key
+*.pem
+
+# 로컬 백업
+local-backup/
+backup/
+
+# 실제 로그
+*.log
+*.log.*
+logs/
+
+# 운영체제 및 편집기
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 임시 파일
+*.tmp
+*.swp
+*~

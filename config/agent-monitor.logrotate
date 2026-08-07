@@ -1,0 +1,10 @@
+# logrotate 설정 골격
+# 실제 로그 경로, 소유자, 그룹은 docs/08-logging-cron.md에서 검증 후 확정합니다.
+
+/var/log/agent-app/monitor.log {
+    size 10M
+    rotate 10
+    compress
+    missingok
+    notifempty
+}
