@@ -1,0 +1,126 @@
+name: B1-1 static and isolated checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - fix/b1-1-pre-codex-audit
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash syntax
+        run: |
+          set -euo pipefail
+          for file in scripts/*.sh; do
+            echo "bash -n $file"
+            bash -n "$file"
+          done
+
+      - name: Configuration invariants
+        run: |
+          set -euo pipefail
+          grep -Eq '^[[:space:]]*size[[:space:]]+10M([[:space:]]|$)' config/agent-monitor.logrotate
+          grep -Eq '^[[:space:]]*rotate[[:space:]]+9([[:space:]]|$)' config/agent-monitor.logrotate
+          grep -Eq '^[[:space:]]*create[[:space:]]+0660[[:space:]]+agent-admin[[:space:]]+agent-core' config/agent-monitor.logrotate
+          grep -Eq '^\* \* \* \* \* /home/agent-admin/agent-app/bin/monitor\.sh' config/crontab.example
+
+      - name: report.sh fixture
+        run: |
+          set -euo pipefail
+          cat > /tmp/monitor-fixture.log <<'DATA'
+          [2026-08-07 10:00:00] PID:100 CPU:10.00% MEM:20.00% DISK_USED:30%
+          [2026-08-07 11:00:00] PID:100 CPU:20.00% MEM:30.00% DISK_USED:40%
+          [2026-08-07 12:00:00] PID:100 CPU:30.00% MEM:40.00% DISK_USED:50%
+          DATA
+          output="$(bash scripts/report.sh --log /tmp/monitor-fixture.log)"
+          echo "$output"
+          grep -Fq 'samples=3' <<<"$output"
+          grep -Fq 'CPU  avg=20.00%' <<<"$output"
+          grep -Fq 'MEM  avg=30.00%' <<<"$output"
+          grep -Fq 'DISK avg=40.00%' <<<"$output"
+
+      - name: archive-logs.sh fixture
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/b1-logs /tmp/b1-archive
+          mkdir -p /tmp/b1-logs /tmp/b1-archive
+          printf 'old\n' > /tmp/b1-logs/old.log
+          printf 'new\n' > /tmp/b1-logs/new.log
+          touch -d '8 days ago' /tmp/b1-logs/old.log
+          AGENT_LOG_DIR=/tmp/b1-logs AGENT_ARCHIVE_DIR=/tmp/b1-archive bash scripts/archive-logs.sh
+          test -f /tmp/b1-archive/old.log.gz
+          test -f /tmp/b1-logs/new.log
+          test ! -e /tmp/b1-logs/old.log
+          touch -d '31 days ago' /tmp/b1-archive/old.log.gz
+          AGENT_LOG_DIR=/tmp/b1-logs AGENT_ARCHIVE_DIR=/tmp/b1-archive bash scripts/archive-logs.sh
+          test ! -e /tmp/b1-archive/old.log.gz
+
+      - name: monitor process and port failures
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/b1-monitor
+          set +e
+          AGENT_ENV_FILE=/nonexistent \
+          AGENT_PROCESS_PATTERN='__b1_missing_process__' \
+          AGENT_PORT=15034 \
+          AGENT_LOG_DIR=/tmp/b1-monitor \
+          bash scripts/monitor.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 1
+
+          sleep 120 &
+          sleep_pid=$!
+          trap 'kill "$sleep_pid" 2>/dev/null || true' EXIT
+          set +e
+          AGENT_ENV_FILE=/nonexistent \
+          AGENT_PROCESS_PATTERN='sleep 120' \
+          AGENT_PORT=65534 \
+          AGENT_LOG_DIR=/tmp/b1-monitor \
+          bash scripts/monitor.sh
+          rc=$?
+          set -e
+          test "$rc" -eq 1
+          kill "$sleep_pid" 2>/dev/null || true
+          wait "$sleep_pid" 2>/dev/null || true
+          trap - EXIT
+
+      - name: monitor normal warning and log-write failure
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/b1-monitor-ok
+          python3 -m http.server 15034 --bind 0.0.0.0 >/tmp/b1-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          sleep 1
+
+          output="$(AGENT_ENV_FILE=/nonexistent \
+            AGENT_PROCESS_PATTERN='python3 -m http.server 15034' \
+            AGENT_PORT=15034 \
+            AGENT_LOG_DIR=/tmp/b1-monitor-ok \
+            CPU_WARN_THRESHOLD=-1 \
+            MEM_WARN_THRESHOLD=-1 \
+            DISK_WARN_THRESHOLD=-1 \
+            bash scripts/monitor.sh)"
+          echo "$output"
+          grep -Fq '[WARNING] CPU usage' <<<"$output"
+          grep -Fq '[WARNING] MEM usage' <<<"$output"
+          grep -Fq '[WARNING] DISK_USED' <<<"$output"
+          test -s /tmp/b1-monitor-ok/monitor.log
+
+          chmod 0444 /tmp/b1-monitor-ok/monitor.log
+          set +e
+          AGENT_ENV_FILE=/nonexistent \
+          AGENT_PROCESS_PATTERN='python3 -m http.server 15034' \
+          AGENT_PORT=15034 \
+          AGENT_LOG_DIR=/tmp/b1-monitor-ok \
+          bash scripts/monitor.sh >/tmp/b1-monitor-write.out 2>/tmp/b1-monitor-write.err
+          rc=$?
+          set -e
+          test "$rc" -eq 2
+          grep -Fq 'log file exists but is not writable' /tmp/b1-monitor-write.err
