@@ -1,124 +1,164 @@
 # 14. 최종 검수와 제출
 
-> **기억 문장:** 제출은 파일을 올리는 일이 아니라, 요구사항마다 증거가 있는 상태를 확정하는 일이다.
+> **기억 문장:** 제출은 파일을 올리는 일이 아니라, 요구사항마다 실제 근거가 연결된 상태를 확정하는 일이다.
 
-이 장에서는 B1-1의 필수 요구사항을 최종 검수하고 **자동 검증 → Codex 독립 검증 → 수정 → 사용자 최종 검증 → 제출** 순서로 완료합니다.
+이 장에서는 **정적검증 → 현재상태 확인 → runtime acceptance → evidence → Codex → 사용자 인수** 순서로 최종 검수합니다.
 
 ---
 
-## 1. 최종 완료 조건
-
-B1-1 필수 미션은 다음 조건을 모두 만족해야 합니다.
+## 1. FINAL PASS 조건
 
 ```text
-구현 완료
-+ 실제 테스트 완료
-+ 증빙 존재
+원본 요구사항 구현
++ 실제 runtime 테스트
++ evidence 연결
 + 평가 설명 가능
 + 재현 가능
 + 민감정보 없음
++ 독립 검토
 = FINAL PASS
 ```
 
-`docs/reference/requirements-evidence-map.md`에 `TODO`, `BLOCKED`, 미해결 `FAIL`이 남아 있으면 제출 완료로 처리하지 않습니다.
+`verify.sh` 한 번 통과만으로 FINAL PASS를 선언하지 않습니다.
 
 ---
 
-## 2. 최종 검증 순서
+## 2. 최종 게이트
 
 ```text
-① Git 상태 확인
-② Bash/설정 정적 검증
-③ 실제 시스템 read-only 검증
-④ 테스트 결과 확인
-⑤ 증빙 연결 확인
-⑥ 평가문항 설명 확인
-⑦ 비밀정보 검사
-⑧ Codex 독립 검증
-⑨ 지적사항 수정·재검증
-⑩ 사용자 최종 인수 검증
-⑪ 제출
-⑫ 15 보너스 고도화
+① Git/원본 보존 확인
+② Bash·설정 정적검증
+③ preflight
+④ verify — 현재 상태 read-only
+⑤ acceptance-test — 실제 기능·장애·cron
+⑥ 수동으로 남은 SSH/logrotate/재현 검증
+⑦ test-results 갱신
+⑧ evidence 연결
+⑨ requirements-evidence-map 최종 대조
+⑩ Codex 독립 Audit
+⑪ BLOCKER/MAJOR 수정 및 재검증
+⑫ 사용자 최종 인수
+⑬ 제출
+⑭ Bonus 최종 검증·고도화
 ```
 
 ---
 
-## 3. Git 상태 확인
+## 3. Git과 원본 파일
 
 ```bash
 git status --short
 git branch --show-current
-git log --oneline -n 10
+git rev-parse HEAD
 ```
 
-확인:
+다음 원본은 임의 수정하지 않습니다.
 
 ```text
-의도하지 않은 파일 없음
-실제 key/.env/log 없음
-임시 백업 없음
-변경 이유를 설명할 수 있음
+b1-1-mission.md
+b1-1-mission.pdf
+b1-1-evaluation.md
+agent-app.zip
 ```
 
 ---
 
-## 4. 정적 검증
-
-### Bash
+## 4. 정적검증
 
 ```bash
 bash -n scripts/preflight.sh
 bash -n scripts/monitor.sh
 bash -n scripts/verify.sh
+bash -n scripts/acceptance-test.sh
+bash -n scripts/report.sh
+bash -n scripts/archive-logs.sh
 ```
 
-보너스 Bash가 있으면 함께 검사합니다.
-
-ShellCheck가 설치된 환경에서는 추가로 사용할 수 있습니다.
+선택:
 
 ```bash
 shellcheck scripts/*.sh
 ```
 
-ShellCheck는 원본 필수 요구사항이 아니라 보조 품질 검사입니다.
-
-### 설정 파일
-
-실제 Ubuntu에 설치된 logrotate 설정:
-
-```bash
-sudo logrotate -d /etc/logrotate.d/agent-monitor
-```
-
-SSH:
+설정:
 
 ```bash
 sudo sshd -t
+sudo logrotate -d /etc/logrotate.d/agent-monitor
 ```
 
 ---
 
-## 5. 최종 read-only 검증
-
-저장소 루트에서:
+## 5. 현재 상태 검증
 
 ```bash
 sudo bash scripts/verify.sh
 ```
 
-목표 최종 줄:
+이 도구는 다음과 같은 **현재 구성 상태**를 확인합니다.
 
 ```text
-[PASS] B1-1 read-only final verification checks passed.
+SSH/UFW
+사용자·그룹
+주요 디렉터리 권한
+환경 파일/key 메타데이터
+Agent process/15034
+monitor 배치/로그 포맷
+cron 등록
+logrotate 설정
+tracked secret file 패턴
 ```
 
-하나라도 `[FAIL]`이 있으면 해당 담당 장으로 돌아갑니다.
+성공해도 Boot Sequence와 실제 장애 동작까지 증명한 것은 아닙니다.
 
 ---
 
-## 6. 테스트 결과 확인
+## 6. Runtime Acceptance
 
-마스터 테스트:
+Agent 시작 출력을 안전하게 저장한 뒤:
+
+```bash
+sudo bash scripts/acceptance-test.sh \
+  --agent-boot-log <Agent 시작 출력 파일>
+```
+
+주요 확인:
+
+```text
+Boot 5 [OK]
+Agent READY
+ACL 허용/차단
+monitor 정상 exit 0
+process failure exit 1
+port failure exit 1
+threshold WARNING + 계속
+monitor.log 포맷
+cron 자동 증가
+logrotate dry-run
+```
+
+`acceptance-test.sh`도 evidence 자체를 자동 완성하는 도구는 아닙니다. 실제 출력과 결과를 `reports/test-results.md`와 `evidence/`에 연결합니다.
+
+---
+
+## 7. 수동으로 남는 핵심 검증
+
+자동화하기보다 사람이 확인하는 편이 안전한 항목:
+
+```text
+외부/별도 클라이언트 SSH 20022 접속
+Agent 실제 ZIP 경로/파일 선택 확인
+logrotate 강제 회전과 최대 파일 수 확인
+재부팅 후 지속성
+가능하면 깨끗한 Ubuntu 재현
+평가 질문 구두 설명
+```
+
+---
+
+## 8. evidence와 테스트 ledger
+
+테스트 정의:
 
 ```text
 tests/test-cases.md
@@ -130,267 +170,105 @@ tests/test-cases.md
 reports/test-results.md
 ```
 
-최소 핵심 테스트:
-
-```text
-정상 monitor exit 0
-프로세스 실패 exit 1
-포트 실패 exit 1
-WARNING은 계속 실행
-로그 포맷
-cron 자동 증가
-logrotate
-복구 후 정상
-```
-
-테스트 상태가 `TODO`인데 보고서만 PASS라고 쓰지 않습니다.
-
----
-
-## 7. 증빙 연결 확인
-
-마스터 추적표:
+마스터 추적:
 
 ```text
 docs/reference/requirements-evidence-map.md
 ```
 
-각 필수 행에서 다음이 모두 있어야 합니다.
+각 필수 요구사항에는:
 
 ```text
-담당 문서
 구현 위치
 검증 방법
-증빙 위치
-상태 PASS
+실제 결과
+증빙 경로
+최종 상태
 ```
 
-증빙 파일이 실제로 존재하는지도 확인합니다.
+가 연결되어야 합니다.
 
 ---
 
-## 8. 민감정보 검사
-
-`.gitignore` 확인과 함께 실제 추적 파일을 검사합니다.
+## 9. 민감정보
 
 ```bash
 git ls-files | grep -E '(^|/)([^/]*\.key|\.env($|\.))' || true
 ```
 
-허용 예:
+허용 예시는 `.env.example`입니다.
 
-```text
-*.env.example
-```
+실제 key 값, 비밀번호, token, private key, 불필요한 개인 IP, 전체 운영 로그를 제출물에 넣지 않습니다.
 
-확인할 것:
-
-```text
-실제 key 내용 없음
-비밀번호 없음
-token 없음
-private key 없음
-불필요한 개인 IP 없음
-운영 로그 전체 없음
-```
-
-이미 커밋된 비밀값이 발견되면 단순 파일 삭제만으로 끝내지 않고 Git 기록 노출 여부까지 검토합니다.
+원본 미션 문서에 포함된 테스트 key 문구는 Source of Truth이므로 원본 파일을 변경하지 않되, 이를 구현 문서·reports·evidence에 복제하지 않습니다.
 
 ---
 
-## 9. Codex 독립 검증
+## 10. Codex 독립 검증
 
-Codex에는 구현자의 자체 평가를 그대로 믿게 하지 않고 다음 자료를 기준으로 독립 검증하도록 합니다.
+Codex에는 다음 우선순위로 감사하도록 요청합니다.
 
 ```text
-1. b1-1-mission.md
+1. b1-1-mission.md / PDF
 2. b1-1-evaluation.md
-3. docs/reference/requirements-evidence-map.md
-4. README.md + docs/00~15
-5. scripts/
-6. config/
-7. tests/
-8. reports/
-9. evidence/
+3. 실제 scripts/config
+4. requirements-evidence-map
+5. docs/00~15
+6. tests/reports/evidence
 ```
 
-### Codex 검증 요청 형식
+Codex도 문서 주장만으로 PASS하지 않도록 합니다.
+
+최종 리뷰 결과:
 
 ```text
-B1-1 저장소를 독립적으로 감사하라.
-
-1. 원본 mission 요구사항을 모두 추출한다.
-2. evaluation 문항을 모두 추출한다.
-3. 요구사항별 구현 파일과 근거를 찾는다.
-4. 실제 실행 가능한 검증 명령을 확인한다.
-5. 누락·과잉구현·보안문제·재현성 문제를 찾는다.
-6. 각 항목을 PASS / PARTIAL / FAIL / BLOCKED로 판정한다.
-7. 판정마다 파일 경로와 근거를 제시한다.
-8. 예시 출력이나 문서 주장만으로 PASS하지 않는다.
-9. 실제 환경 증빙이 필요한 것은 별도로 표시한다.
-10. 수정 우선순위를 BLOCKER / MAJOR / MINOR로 제시한다.
+reports/codex-review.md
 ```
 
-### 중요한 원칙
-
-Codex 결과도 자동으로 진실로 간주하지 않습니다.
+권장 분류:
 
 ```text
-Codex 지적
-→ 원본 mission/evaluation 재확인
-→ 실제 코드/환경 검증
-→ 수정
-→ 다시 Codex/verify
+BLOCKER
+MAJOR
+MINOR
+IMPROVEMENT
+NEEDS-RUNTIME
 ```
-
-순서로 처리합니다.
 
 ---
 
-## 10. 사용자 최종 인수 검증
+## 11. 사용자 최종 인수
 
-Codex까지 통과한 뒤 사용자는 모든 제작 과정을 반복할 필요가 없습니다.
-
-최종 핵심 검증만 수행합니다.
-
-```bash
-sudo bash scripts/verify.sh
-```
-
-그리고 핵심 시연:
+Codex의 BLOCKER/MAJOR를 해결한 후 사용자는 제작 과정을 전부 반복하지 않고 핵심 시연에 집중합니다.
 
 ```text
-1. SSH/UFW
-2. Agent READY/15034
-3. monitor 정상
-4. monitor 장애 exit 1
-5. monitor.log
-6. cron 자동 증가
-7. logrotate
+SSH/UFW
+사용자·ACL
+Agent READY/15034
+monitor 정상/장애
+monitor.log
+cron 자동 증가
+logrotate
+평가 설명
 ```
-
-사용자는 **Acceptance Tester(인수 검증자)** 역할에 집중합니다.
 
 ---
 
-## 11. 최종 시연 순서
-
-평가자 앞에서 빠르게 보여 줄 때:
+## 12. 현재 상태
 
 ```text
-① 요구사항 한 문장 설명
-② sshd -T + ss
-③ ufw status
-④ id + getfacl
-⑤ Agent READY + 15034
-⑥ monitor.sh 수동 실행
-⑦ monitor.log
-⑧ agent-admin crontab
-⑨ logrotate 정책
-⑩ 장애 하나 + exit 1 + 복구
+Pre-Codex 코드/문서 보완   진행 완료 단계
+SSH/UFW                   TESTED / evidence pending
+IAM/ACL                   TODO
+Agent runtime             TODO
+monitor runtime           TODO
+cron/logrotate runtime    TODO
+acceptance runtime        TODO
+전체 evidence             TODO
+Codex audit               TODO
+사용자 acceptance         TODO
+FINAL PASS                NO
 ```
-
-이 순서는 B1-1 전체를 짧게 설명하기 위한 시연 흐름입니다.
-
----
-
-## 12. 제출 파일
-
-원본 필수 산출물:
-
-```text
-요구사항 수행 내역서
-monitor.sh
-```
-
-이 저장소에서는 이를 뒷받침하기 위해 추가로:
-
-```text
-README/docs
-config
-scripts
-테스트
-reports
-evidence
-```
-
-를 관리합니다.
-
-추가 자료가 원본 필수 산출물을 가리거나 대체해서는 안 됩니다.
-
----
-
-## 13. 최종 체크리스트
-
-상세 체크:
-
-```text
-reports/final-checklist.md
-```
-
-최종적으로 해당 파일의 필수 요구사항과 제출 안전 항목을 모두 확인합니다.
-
----
-
-## 14. 현재 상태
-
-현재 저장소는 다음 수준입니다.
-
-```text
-00~14 수행 문서 구조     구현 진행
-SSH/UFW 실제 설정        TESTED
-monitor.sh               IMPLEMENTED
-cron/logrotate config    IMPLEMENTED
-preflight/verify          IMPLEMENTED
-IAM/ACL 실제 구성        미완료
-Agent 실제 실행          미완료
-monitor runtime           미완료
-cron/logrotate runtime    미완료
-전체 evidence             미완료
-Codex 최종 감사           미실행
-사용자 최종 인수          미실행
-```
-
-따라서 아직 최종 제출 PASS로 표시하지 않습니다.
-
----
-
-## 15. 이번 단계 기억하기
-
-### 한 문장
-
-> **제출은 파일을 올리는 일이 아니라, 요구사항마다 증거가 있는 상태를 확정하는 일이다.**
-
-### 핵심어 3개
-
-```text
-VERIFY · AUDIT · ACCEPT
-```
-
-### 내가 설명할 수 있어야 할 것
-
-> 왜 ChatGPT가 만든 뒤 Codex와 사용자가 다시 검증하는가?
-
-답의 핵심은 **제작자와 검증자의 관점을 분리해 누락과 자기확증을 줄이기 위해서**입니다.
-
----
-
-## 16. 완료 체크
-
-- [x] 최종 검수 절차 정의
-- [x] read-only verify 절차 정의
-- [x] 비밀정보 검사 정의
-- [x] Codex 독립 검증 기준 정의
-- [x] 사용자 최종 인수 흐름 정의
-- [x] 최종 시연 순서 정의
-- [ ] 필수 요구사항 실제 전체 PASS
-- [ ] evidence 전체 연결
-- [ ] Codex 독립 검증
-- [ ] Codex BLOCKER/MAJOR 수정 완료
-- [ ] 사용자 최종 인수 검증
-- [ ] 최종 제출
-
-현재 14단계는 **최종 게이트 설계 완료 / 제출 전**입니다.
 
 ---
 
