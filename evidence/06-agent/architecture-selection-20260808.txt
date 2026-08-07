@@ -1,0 +1,29 @@
+B1-1 runtime evidence — host architecture and provided Agent binary selection
+Captured from the user's actual Ubuntu/WSL runtime on 2026-08-08.
+
+Host architecture:
+- uname -m: x86_64
+
+Provided ZIP binaries:
+- agent-app-linux-x86: ELF 64-bit LSB executable, x86-64, dynamically linked
+- agent-app-linux-arm64: ELF 64-bit LSB executable, ARM aarch64, dynamically linked
+
+Selected binary for this host:
+- /tmp/b1-1-agent-extract/agent-app-linux-x86
+- SHA256: cdbae8c066e734916b7cd25dc9e651818acf63b2e6817125ede5e85a4de0ff5a
+
+Observed extracted file modes:
+- agent-app-linux-x86: 755 ubuntu:ubuntu
+- agent-app-linux-arm64: 644 ubuntu:ubuntu
+
+Confirmed runtime identities:
+- agent-admin: member of agent-common and agent-core
+- agent-dev: member of agent-common and agent-core
+- agent-test: member of agent-common only
+
+Observation:
+- stat from the current ubuntu shell returned Permission denied for /home/agent-admin/agent-app and its protected subdirectories.
+- /var/log/agent-app was visible as agent-admin:agent-core mode 2770.
+- The protected-path stat result is not treated as a Mission failure by itself because the current shell user is ubuntu, not an allowed agent-common/core principal; privileged verification will be used for the final check.
+
+No secret value is included in this evidence file.
