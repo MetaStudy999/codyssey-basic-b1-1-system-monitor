@@ -39,6 +39,10 @@ is_greater_than() {
   awk -v value="$1" -v limit="$2" 'BEGIN { exit !(value > limit) }'
 }
 
+escape_ere() {
+  printf '%s' "$1" | sed 's/[][(){}.^$*+?|\\]/\\&/g'
+}
+
 resolve_process_pattern() {
   if [[ -n "${AGENT_PROCESS_PATTERN:-}" ]]; then
     printf '%s' "$AGENT_PROCESS_PATTERN"
@@ -116,14 +120,17 @@ require_command df
 require_command grep
 require_command head
 require_command pgrep
+require_command sed
 require_command sleep
 require_command ss
 require_command uname
 
 AGENT_PROCESS_PATTERN="$(resolve_process_pattern)"
+AGENT_PROCESS_REGEX="(^|[[:space:]/])$(escape_ere "$AGENT_PROCESS_PATTERN")([[:space:]]|$)"
 
 # 1) Health check: process. Failure must terminate with exit 1.
-AGENT_PID="$(pgrep -f -- "$AGENT_PROCESS_PATTERN" | head -n 1 || true)"
+# Token boundaries prevent false positives such as environment assignments or grep-like commands.
+AGENT_PID="$(pgrep -f -- "$AGENT_PROCESS_REGEX" | head -n 1 || true)"
 if [[ -z "$AGENT_PID" ]]; then
   error "Agent process not found: pattern=$AGENT_PROCESS_PATTERN"
   exit 1
