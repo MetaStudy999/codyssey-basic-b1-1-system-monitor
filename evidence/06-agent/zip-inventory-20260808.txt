@@ -1,0 +1,29 @@
+B1-1 Agent ZIP runtime inventory
+Captured from the dedicated Ubuntu runtime on 2026-08-08.
+
+Repository branch: mission/b1-1
+Repository path: /home/ubuntu/codyssey-basic/codyssey-basic-b1-1-system-monitor
+
+Git tree:
+100644 blob a5d6f5cbcd3fdddceb5e446d1f404f7c43d2e8e4 13847175 agent-app.zip
+
+Working tree:
+-rw-r--r-- 1 ubuntu ubuntu 14M Jul 25 11:50 agent-app.zip
+
+File type:
+agent-app.zip: Zip archive data, at least v2.0 to extract, compression method=deflate
+
+Archive integrity result:
+No errors detected in compressed data of agent-app.zip.
+
+Archive entries:
+6498144  2026-05-20 11:11   agent-app-linux-x86
+354      2026-05-20 11:11   __MACOSX/._agent-app-linux-x86
+7537848  2026-05-18 17:06   agent-app-linux-arm64
+219      2026-05-18 17:06   __MACOSX/._agent-app-linux-arm64
+
+Python entry candidate search:
+No *.py files found.
+
+Workcell interpretation:
+The supplied archive exposes architecture-specific Linux application files rather than a Python source entry file. The Mission explicitly allows health checking by "agent_app.py (or provided app filename)", so runtime must select the architecture-matching provided file before deployment. No application file has been executed based on this inventory alone.
