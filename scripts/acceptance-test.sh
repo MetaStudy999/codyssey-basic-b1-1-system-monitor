@@ -108,7 +108,6 @@ fi
 printf '\n[monitor-process-failure]\n'
 TMP_LOG_DIR="$(mktemp -d /tmp/b1-1-monitor-test.XXXXXX)"
 chmod 0777 "$TMP_LOG_DIR"
-set +e
 sudo -u agent-admin env \
   AGENT_ENV_FILE=/nonexistent \
   AGENT_PROCESS_PATTERN='__b1_1_process_that_does_not_exist__' \
@@ -116,13 +115,11 @@ sudo -u agent-admin env \
   AGENT_LOG_DIR="$TMP_LOG_DIR" \
   "$MONITOR" >/tmp/b1-1-monitor-process.out 2>/tmp/b1-1-monitor-process.err
 RC=$?
-set -e
 [[ "$RC" -eq 1 ]] && pass 'missing Agent process returns exit 1' || fail "missing Agent process exit=$RC (expected 1)"
 
 printf '\n[monitor-port-failure]\n'
 sleep 120 &
 SLEEP_PID=$!
-set +e
 sudo -u agent-admin env \
   AGENT_ENV_FILE=/nonexistent \
   AGENT_PROCESS_PATTERN='sleep 120' \
@@ -130,16 +127,13 @@ sudo -u agent-admin env \
   AGENT_LOG_DIR="$TMP_LOG_DIR" \
   "$MONITOR" >/tmp/b1-1-monitor-port.out 2>/tmp/b1-1-monitor-port.err
 RC=$?
-set -e
 kill "$SLEEP_PID" >/dev/null 2>&1 || true
 wait "$SLEEP_PID" 2>/dev/null || true
 [[ "$RC" -eq 1 ]] && pass 'process-present/port-missing returns exit 1' || fail "port failure exit=$RC (expected 1)"
 
 printf '\n[monitor-warning-thresholds]\n'
-set +e
 WARNING_OUTPUT="$(sudo -u agent-admin env CPU_WARN_THRESHOLD=-1 MEM_WARN_THRESHOLD=-1 DISK_WARN_THRESHOLD=-1 "$MONITOR" 2>&1)"
 RC=$?
-set -e
 if [[ "$RC" -eq 0 ]]; then
   pass 'threshold-warning run continues with exit 0'
   grep -Fq 'CPU usage' <<<"$WARNING_OUTPUT" && pass 'CPU warning emitted' || fail 'CPU warning missing'
