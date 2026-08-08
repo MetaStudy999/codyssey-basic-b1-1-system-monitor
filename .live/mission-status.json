@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "mission": "B1-1",
+  "repository": "MetaStudy999/codyssey-basic-b1-1-system-monitor",
+  "updated_at": "2026-08-09T06:41:00+09:00",
+  "source": "bootstrap-from-repository-evidence",
+  "workcell_status": "NEEDS-RUNTIME",
+  "current_gate": "G5_RUNTIME",
+  "gates": {
+    "G1_SOURCE": "PASS",
+    "G2_BUILD": "IMPLEMENTED",
+    "G3_TEST": "TESTED",
+    "G4_REVIEW": "TODO",
+    "G5_RUNTIME": "NEEDS-RUNTIME",
+    "G6_EVIDENCE": "TODO",
+    "G7_LEARN": "PASS",
+    "G8_MERGE": "TODO"
+  },
+  "note": "Initial telemetry snapshot. Update this file whenever a G1-G8 gate changes."
+}
