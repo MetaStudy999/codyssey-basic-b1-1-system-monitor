@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 set -u
 
-# Read-only B1-1 final verifier.
-# It inspects the current system state but does not modify SSH, UFW,
-# users/groups, ACLs, cron, logrotate, Agent state, or logs.
+# B1-1 read-only state verifier.
+# It checks current configuration/state only. It does NOT prove Boot Sequence,
+# failure-injection behavior, cron growth, or evidence completeness.
 
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
-
 pass() { printf '[PASS] %s\n' "$*"; PASS_COUNT=$((PASS_COUNT + 1)); }
 warn() { printf '[WARN] %s\n' "$*"; WARN_COUNT=$((WARN_COUNT + 1)); }
 fail() { printf '[FAIL] %s\n' "$*"; FAIL_COUNT=$((FAIL_COUNT + 1)); }
@@ -20,68 +19,81 @@ has_group() {
 
 check_stat() {
   local path="$1" expected_owner="$2" expected_group="$3" expected_mode="$4"
-  if [[ ! -e "$path" ]]; then
-    fail "missing: $path"
-    return
-  fi
+  if [[ ! -e "$path" ]]; then fail "missing: $path"; return; fi
   local actual
   actual="$(stat -c '%U:%G:%a' "$path" 2>/dev/null || true)"
-  if [[ "$actual" == "${expected_owner}:${expected_group}:${expected_mode}" ]]; then
-    pass "$path => $actual"
-  else
-    fail "$path => $actual (expected ${expected_owner}:${expected_group}:${expected_mode})"
-  fi
+  [[ "$actual" == "${expected_owner}:${expected_group}:${expected_mode}" ]] \
+    && pass "$path => $actual" \
+    || fail "$path => $actual (expected ${expected_owner}:${expected_group}:${expected_mode})"
 }
 
-printf 'B1-1 final verifier (read-only)\n'
-printf '%s\n' '----------------------------------------'
+escape_ere() {
+  printf '%s' "$1" | sed 's/[][(){}.^$*+?|\\]/\\&/g'
+}
 
-if [[ "$EUID" -ne 0 ]]; then
-  warn 'Run as root for complete verification: sudo ./scripts/verify.sh'
-fi
+resolve_process_pattern() {
+  local env_file="$1" pattern=""
+  if [[ -r "$env_file" ]]; then
+    pattern="$(awk -F= '$1=="AGENT_PROCESS_PATTERN" {print substr($0,index($0,"=")+1); exit}' "$env_file")"
+  fi
+  if [[ -n "$pattern" ]]; then printf '%s' "$pattern"; return; fi
+  case "$(uname -m 2>/dev/null || true)" in
+    x86_64|amd64) printf '%s' 'agent-app-linux-x86' ;;
+    aarch64|arm64) printf '%s' 'agent-app-linux-arm64' ;;
+    *) printf '%s' 'agent_app.py' ;;
+  esac
+}
+
+printf 'B1-1 read-only state verifier\n'
+printf '%s\n' '----------------------------------------'
+[[ "$EUID" -eq 0 ]] || warn 'Run as root for complete verification: sudo bash scripts/verify.sh'
 
 printf '\n[ssh]\n'
-SSHD_EFFECTIVE="$(sshd -T 2>/dev/null || true)"
-if [[ -n "$SSHD_EFFECTIVE" ]]; then
-  if grep -Fxq 'port 20022' <<<"$SSHD_EFFECTIVE"; then pass 'sshd effective port=20022'; else fail 'sshd effective port is not 20022'; fi
-  if grep -Fxq 'permitrootlogin no' <<<"$SSHD_EFFECTIVE"; then pass 'PermitRootLogin=no'; else fail 'PermitRootLogin is not no'; fi
+if command -v sshd >/dev/null 2>&1; then
+  SSHD_EFFECTIVE="$(sshd -T 2>/dev/null || true)"
+  if [[ -n "$SSHD_EFFECTIVE" ]]; then
+    grep -Fxq 'port 20022' <<<"$SSHD_EFFECTIVE" && pass 'sshd effective port=20022' || fail 'sshd effective port is not 20022'
+    grep -Fxq 'permitrootlogin no' <<<"$SSHD_EFFECTIVE" && pass 'PermitRootLogin=no' || fail 'PermitRootLogin is not no'
+  else
+    warn 'sshd -T unavailable; static drop-in will be checked'
+    grep -Eq '^[[:space:]]*Port[[:space:]]+20022([[:space:]]|$)' /etc/ssh/sshd_config.d/99-b1-1.conf 2>/dev/null && pass 'static SSH Port 20022 found' || fail 'static SSH Port 20022 not found'
+    grep -Eq '^[[:space:]]*PermitRootLogin[[:space:]]+no([[:space:]]|$)' /etc/ssh/sshd_config.d/99-b1-1.conf 2>/dev/null && pass 'static PermitRootLogin no found' || fail 'static PermitRootLogin no not found'
+  fi
 else
-  warn 'sshd -T could not be evaluated in the current runtime state; checking static B1-1 drop-in instead'
-  if grep -Eq '^[[:space:]]*Port[[:space:]]+20022([[:space:]]|$)' /etc/ssh/sshd_config.d/99-b1-1.conf 2>/dev/null; then pass 'static SSH Port 20022 found'; else fail 'static SSH Port 20022 not found'; fi
-  if grep -Eq '^[[:space:]]*PermitRootLogin[[:space:]]+no([[:space:]]|$)' /etc/ssh/sshd_config.d/99-b1-1.conf 2>/dev/null; then pass 'static PermitRootLogin no found'; else fail 'static PermitRootLogin no not found'; fi
+  fail 'sshd command missing'
 fi
 
 SS_OUTPUT="$(ss -lntH 2>/dev/null || true)"
-if awk '$4 ~ /:20022$/ {found=1} END {exit !found}' <<<"$SS_OUTPUT"; then pass 'TCP 20022 is LISTEN'; else fail 'TCP 20022 is not LISTEN'; fi
-if awk '$4 ~ /:22$/ {found=1} END {exit !found}' <<<"$SS_OUTPUT"; then fail 'TCP 22 is still LISTEN'; else pass 'TCP 22 is not LISTEN'; fi
+awk '$4 ~ /:20022$/ {found=1} END {exit !found}' <<<"$SS_OUTPUT" && pass 'TCP 20022 is LISTEN' || fail 'TCP 20022 is not LISTEN'
+awk '$4 ~ /:22$/ {found=1} END {exit !found}' <<<"$SS_OUTPUT" && fail 'TCP 22 is still LISTEN' || pass 'TCP 22 is not LISTEN'
 
 printf '\n[ufw]\n'
 if command -v ufw >/dev/null 2>&1; then
   UFW_OUTPUT="$(ufw status verbose 2>/dev/null || true)"
-  if grep -Fq 'Status: active' <<<"$UFW_OUTPUT"; then pass 'UFW active'; else fail 'UFW not confirmed active'; fi
-  if grep -Eq '^Default: deny \(incoming\)' <<<"$UFW_OUTPUT"; then pass 'UFW default incoming deny'; else fail 'UFW default incoming is not deny'; fi
-  if grep -E '^20022/tcp' <<<"$UFW_OUTPUT" | grep -q 'ALLOW IN'; then pass 'UFW allows 20022/tcp'; else fail 'UFW 20022/tcp allow missing'; fi
-  if grep -E '^15034/tcp' <<<"$UFW_OUTPUT" | grep -q 'ALLOW IN'; then pass 'UFW allows 15034/tcp'; else fail 'UFW 15034/tcp allow missing'; fi
+  grep -Fq 'Status: active' <<<"$UFW_OUTPUT" && pass 'UFW active' || fail 'UFW not confirmed active'
+  grep -Eq '^Default: deny \(incoming\)' <<<"$UFW_OUTPUT" && pass 'UFW default incoming deny' || fail 'UFW default incoming is not deny'
+  grep -E '^20022/tcp' <<<"$UFW_OUTPUT" | grep -q 'ALLOW IN' && pass 'UFW allows 20022/tcp' || fail 'UFW 20022/tcp allow missing'
+  grep -E '^15034/tcp' <<<"$UFW_OUTPUT" | grep -q 'ALLOW IN' && pass 'UFW allows 15034/tcp' || fail 'UFW 15034/tcp allow missing'
   UNEXPECTED_RULES="$(awk '/ALLOW IN/ && $1 != "20022/tcp" && $1 != "15034/tcp" {print}' <<<"$UFW_OUTPUT")"
-  if [[ -z "$UNEXPECTED_RULES" ]]; then pass 'no unexpected UFW ALLOW IN rules'; else fail "unexpected UFW ALLOW IN rule(s): $UNEXPECTED_RULES"; fi
+  [[ -z "$UNEXPECTED_RULES" ]] && pass 'no unexpected UFW ALLOW IN rules' || fail "unexpected UFW ALLOW IN rule(s): $UNEXPECTED_RULES"
 else
   fail 'ufw command missing'
 fi
 
 printf '\n[users-groups]\n'
 for user in agent-admin agent-dev agent-test; do
-  if id "$user" >/dev/null 2>&1; then pass "user exists: $user"; else fail "user missing: $user"; fi
+  id "$user" >/dev/null 2>&1 && pass "user exists: $user" || fail "user missing: $user"
 done
-
-if has_group agent-admin agent-common && has_group agent-dev agent-common && has_group agent-test agent-common; then pass 'agent-common membership correct'; else fail 'agent-common membership incomplete'; fi
-if has_group agent-admin agent-core && has_group agent-dev agent-core && ! has_group agent-test agent-core; then pass 'agent-core membership correct'; else fail 'agent-core membership incorrect'; fi
+has_group agent-admin agent-common && has_group agent-dev agent-common && has_group agent-test agent-common \
+  && pass 'agent-common membership correct' || fail 'agent-common membership incomplete'
+has_group agent-admin agent-core && has_group agent-dev agent-core && ! has_group agent-test agent-core \
+  && pass 'agent-core membership correct' || fail 'agent-core membership incorrect'
 
 printf '\n[filesystem-acl]\n'
 check_stat /home/agent-admin/agent-app agent-admin agent-common 2750
 check_stat /home/agent-admin/agent-app/upload_files agent-admin agent-common 2770
 check_stat /home/agent-admin/agent-app/api_keys agent-admin agent-core 2770
 check_stat /var/log/agent-app agent-admin agent-core 2770
-
 if command -v getfacl >/dev/null 2>&1 && getfacl -cp /home/agent-admin 2>/dev/null | grep -Fxq 'group:agent-common:--x'; then
   pass 'agent-common traverse ACL exists on /home/agent-admin'
 else
@@ -100,71 +112,64 @@ if [[ -r "$ENV_FILE" ]]; then
 else
   fail "$ENV_FILE missing or unreadable"
 fi
-
 check_stat /home/agent-admin/agent-app/api_keys/t_secret.key agent-admin agent-core 660
 
 printf '\n[agent-runtime]\n'
-AGENT_PROCESS_PATTERN="agent_app.py"
-if [[ -r "$ENV_FILE" ]]; then
-  CONFIG_PATTERN="$(awk -F= '$1=="AGENT_PROCESS_PATTERN" {print substr($0,index($0,"=")+1); exit}' "$ENV_FILE")"
-  [[ -n "$CONFIG_PATTERN" ]] && AGENT_PROCESS_PATTERN="$CONFIG_PATTERN"
-fi
-AGENT_PID="$(pgrep -f -- "$AGENT_PROCESS_PATTERN" | head -n 1 || true)"
+AGENT_PROCESS_PATTERN="$(resolve_process_pattern "$ENV_FILE")"
+AGENT_PROCESS_REGEX="(^|[[:space:]/])$(escape_ere "$AGENT_PROCESS_PATTERN")([[:space:]]|$)"
+AGENT_PID="$(pgrep -f -- "$AGENT_PROCESS_REGEX" | head -n 1 || true)"
 if [[ -n "$AGENT_PID" ]]; then
   AGENT_USER="$(ps -o user= -p "$AGENT_PID" 2>/dev/null | tr -d '[:space:]')"
-  if [[ -n "$AGENT_USER" && "$AGENT_USER" != "root" ]]; then pass "Agent process non-root: pid=$AGENT_PID user=$AGENT_USER"; else fail "Agent process owner invalid: pid=$AGENT_PID user=${AGENT_USER:-unknown}"; fi
+  [[ -n "$AGENT_USER" && "$AGENT_USER" != root ]] && pass "Agent process non-root: pid=$AGENT_PID user=$AGENT_USER pattern=$AGENT_PROCESS_PATTERN" || fail "Agent process owner invalid: pid=$AGENT_PID user=${AGENT_USER:-unknown}"
 else
   fail "Agent process not found: pattern=$AGENT_PROCESS_PATTERN"
 fi
-
-if awk '$4 == "0.0.0.0:15034" {found=1} END {exit !found}' <<<"$SS_OUTPUT"; then pass 'Agent LISTEN is 0.0.0.0:15034'; else fail '0.0.0.0:15034 LISTEN not found'; fi
+awk '$4 == "0.0.0.0:15034" {found=1} END {exit !found}' <<<"$SS_OUTPUT" && pass 'Agent LISTEN is 0.0.0.0:15034' || fail '0.0.0.0:15034 LISTEN not found'
 
 printf '\n[monitor]\n'
 MONITOR=/home/agent-admin/agent-app/bin/monitor.sh
 check_stat "$MONITOR" agent-dev agent-core 750
-if [[ -f "$MONITOR" ]] && bash -n "$MONITOR"; then pass 'deployed monitor.sh Bash syntax OK'; else fail 'deployed monitor.sh Bash syntax failed or file missing'; fi
-
+[[ -f "$MONITOR" ]] && bash -n "$MONITOR" && pass 'deployed monitor.sh Bash syntax OK' || fail 'deployed monitor.sh Bash syntax failed or file missing'
 LOG=/var/log/agent-app/monitor.log
 if [[ -s "$LOG" ]]; then
   LAST_LINE="$(tail -n 1 "$LOG")"
-  if grep -Eq '^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] PID:[0-9]+ CPU:[0-9]+(\.[0-9]+)?% MEM:[0-9]+(\.[0-9]+)?% DISK_USED:[0-9]+%$' <<<"$LAST_LINE"; then
-    pass 'monitor.log last line matches required format'
-  else
-    fail "monitor.log format mismatch: $LAST_LINE"
-  fi
+  grep -Eq '^\[[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\] PID:[0-9]+ CPU:[0-9]+(\.[0-9]+)?% MEM:[0-9]+(\.[0-9]+)?% DISK_USED:[0-9]+%$' <<<"$LAST_LINE" \
+    && pass 'monitor.log last line matches required format' || fail "monitor.log format mismatch: $LAST_LINE"
+  LOG_STAT="$(stat -c '%U:%G:%a' "$LOG" 2>/dev/null || true)"
+  [[ "$LOG_STAT" == 'agent-admin:agent-core:660' ]] && pass 'monitor.log owner/group/mode=agent-admin:agent-core:660' || warn "monitor.log metadata=$LOG_STAT (target agent-admin:agent-core:660)"
 else
   fail 'monitor.log missing or empty'
 fi
 
 printf '\n[cron-logrotate]\n'
 CRON_OUTPUT="$(crontab -u agent-admin -l 2>/dev/null || true)"
-if grep -Eq '^\* \* \* \* \* /home/agent-admin/agent-app/bin/monitor\.sh([[:space:]]|$)' <<<"$CRON_OUTPUT"; then pass 'agent-admin cron runs monitor.sh every minute'; else fail 'agent-admin every-minute cron entry missing'; fi
-
+grep -Eq '^\* \* \* \* \* /home/agent-admin/agent-app/bin/monitor\.sh([[:space:]]|$)' <<<"$CRON_OUTPUT" && pass 'agent-admin cron runs monitor.sh every minute' || fail 'agent-admin every-minute cron entry missing'
 ROTATE=/etc/logrotate.d/agent-monitor
 if [[ -r "$ROTATE" ]]; then
   grep -Eq '^[[:space:]]*size[[:space:]]+10M([[:space:]]|$)' "$ROTATE" && pass 'logrotate size 10M' || fail 'logrotate size 10M missing'
-  grep -Eq '^[[:space:]]*rotate[[:space:]]+10([[:space:]]|$)' "$ROTATE" && pass 'logrotate rotate 10' || fail 'logrotate rotate 10 missing'
+  grep -Eq '^[[:space:]]*rotate[[:space:]]+9([[:space:]]|$)' "$ROTATE" && pass 'logrotate rotate 9 => current + 9 rotations = max 10 files' || fail 'strict max-10-file policy (rotate 9) missing'
+  grep -Eq '^[[:space:]]*create[[:space:]]+0660[[:space:]]+agent-admin[[:space:]]+agent-core([[:space:]]|$)' "$ROTATE" && pass 'logrotate create 0660 agent-admin agent-core' || fail 'logrotate create metadata incorrect'
 else
   fail "$ROTATE missing or unreadable"
 fi
 
-printf '\n[repository-secret-check]\n'
+printf '\n[repository-secret-files]\n'
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 if command -v git >/dev/null 2>&1 && git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   TRACKED_SECRETS="$(git -C "$REPO_ROOT" ls-files | grep -E '(^|/)([^/]*\.key|\.env($|\.))' | grep -vE '\.env\.example$' || true)"
-  if [[ -z "$TRACKED_SECRETS" ]]; then pass 'no obvious tracked .key/.env secret files'; else fail "possible tracked secret files: $TRACKED_SECRETS"; fi
+  [[ -z "$TRACKED_SECRETS" ]] && pass 'no obvious tracked .key/.env secret files' || fail "possible tracked secret files: $TRACKED_SECRETS"
 else
-  warn 'repository secret check skipped: Git worktree not detected'
+  warn 'repository secret-file check skipped: Git worktree not detected'
 fi
 
 printf '\n[summary]\n'
 printf 'PASS=%d WARN=%d FAIL=%d\n' "$PASS_COUNT" "$WARN_COUNT" "$FAIL_COUNT"
-
 if (( FAIL_COUNT > 0 )); then
-  printf '[FAIL] B1-1 final verification has blocking items.\n'
+  printf '[FAIL] B1-1 current-state verification has blocking items.\n'
   exit 1
 fi
 
-printf '[PASS] B1-1 read-only final verification checks passed.\n'
+printf '[PASS] B1-1 current-state checks passed.\n'
+printf '[NEXT] Final mission PASS still requires runtime acceptance tests, Boot/READY evidence, cron-growth observation, and evidence review.\n'
 exit 0
