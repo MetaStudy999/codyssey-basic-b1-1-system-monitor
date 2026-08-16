@@ -19,7 +19,10 @@ fi
 AGENT_HOME="${AGENT_HOME:-/home/agent-admin/agent-app}"
 AGENT_PORT="${AGENT_PORT:-15034}"
 AGENT_LOG_DIR="${AGENT_LOG_DIR:-/var/log/agent-app}"
-AGENT_PROCESS_PATTERN="${AGENT_PROCESS_PATTERN:-agent_app.py}"
+# The official Mission allows agent_app.py or the provided Agent binary name.
+# The default therefore recognizes both supplied Linux binaries; deployments may
+# override this with AGENT_PROCESS_PATTERN in /etc/agent-app/agent.env.
+AGENT_PROCESS_PATTERN="${AGENT_PROCESS_PATTERN:-agent_app.py|agent-app-linux-x86|agent-app-linux-arm64}"
 LOG_FILE="${AGENT_LOG_DIR}/monitor.log"
 
 CPU_WARN_THRESHOLD="${CPU_WARN_THRESHOLD:-20}"
@@ -48,8 +51,6 @@ is_greater_than() {
 read_cpu_snapshot() {
   awk '/^cpu / {
     total = 0
-    # user, nice, system, idle, iowait, irq, softirq, steal
-    # guest/guest_nice are already included in user/nice and are not added again.
     for (i = 2; i <= 9 && i <= NF; i++) total += $i
     idle = $5 + $6
     printf "%.0f %.0f\n", total, idle
@@ -93,8 +94,8 @@ collect_disk_percent() {
 }
 
 firewall_is_active() {
-  # monitor.sh is intended to run from agent-admin's cron without interactive sudo.
-  # systemctl status is therefore used instead of privileged `ufw status`.
+  # cron must not require interactive sudo. If activity cannot be confirmed,
+  # the Mission requires only a WARNING; runtime evidence verifies UFW itself.
   if command -v systemctl >/dev/null 2>&1; then
     if command -v ufw >/dev/null 2>&1 && systemctl is-active --quiet ufw 2>/dev/null; then
       return 0
@@ -107,6 +108,7 @@ firewall_is_active() {
 }
 
 require_command awk
+require_command date
 require_command df
 require_command pgrep
 require_command ss
@@ -147,7 +149,8 @@ if is_greater_than "$DISK_USED" "$DISK_WARN_THRESHOLD"; then
   warn "DISK_USED ${DISK_USED}% exceeds ${DISK_WARN_THRESHOLD}%"
 fi
 
-# 6) Logging prerequisites.
+# 6) Logging prerequisites. A logging failure is a monitor/configuration error,
+# not a healthy result; do not silently return 0.
 if [[ ! -d "$AGENT_LOG_DIR" ]]; then
   error "log directory does not exist: $AGENT_LOG_DIR"
   exit 2
@@ -158,10 +161,18 @@ if [[ ! -w "$AGENT_LOG_DIR" ]]; then
   exit 2
 fi
 
+if [[ -e "$LOG_FILE" && ! -w "$LOG_FILE" ]]; then
+  error "log file is not writable: $LOG_FILE"
+  exit 2
+fi
+
 # 7) Required log format.
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 LOG_LINE="[$TIMESTAMP] PID:$AGENT_PID CPU:${CPU}% MEM:${MEM}% DISK_USED:${DISK_USED}%"
-printf '%s\n' "$LOG_LINE" >> "$LOG_FILE"
+if ! printf '%s\n' "$LOG_LINE" >> "$LOG_FILE"; then
+  error "failed to append monitor log: $LOG_FILE"
+  exit 2
+fi
 printf '%s\n' "$LOG_LINE"
 
 exit 0
