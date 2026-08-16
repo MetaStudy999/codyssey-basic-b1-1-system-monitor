@@ -1,20 +1,59 @@
 # B1-1 R01 — Prerequisites
 
+## 현재 실제 실행 환경
+
+```text
+macOS Host
+└─ OrbStack
+   └─ Ubuntu 24.04 Linux Machine
+      └─ B1-1 Runtime
+```
+
+현재 R01 Phase C에서 B1-1은 **macOS Host 위의 OrbStack Ubuntu 24.04**를 실제 Runtime 환경으로 사용합니다.
+
+B1-1의 Linux 관련 명령과 시스템 설정은 macOS에서 직접 실행하지 않고 **OrbStack Ubuntu 24.04 내부**에서 수행합니다.
+
+상세 환경 규칙은 `ORBSTACK-UBUNTU-24.04.md`를 먼저 확인합니다.
+
 ## 시작 조건
 
-- Ubuntu 22.04 LTS 또는 동등 Linux 환경
+- OrbStack Ubuntu 24.04 Linux machine
 - 일반 사용자 계정
 - 필요한 시스템 작업을 위한 `sudo` 권한
 - Git으로 현재 저장소를 확인할 수 있는 환경
 - 공식 `agent-app.zip`
 - R01 Golden Path: `AGENT_HOME=/opt/agent-app`
-- R01 Firewall: UFW
+- R01 Firewall: Ubuntu 내부 UFW
+- `systemd`, `sshd`가 실제로 동작 가능한지 Runtime에서 확인
 
-> 기존 업무/서비스가 동작하는 서버보다 **전용 WSL2/VM/실습 Linux**를 권장합니다. 공식 요구사항은 인바운드 허용을 `20022/tcp`, `15034/tcp`만 남겨야 하므로 다른 서비스가 필요한 서버에서는 충돌할 수 있습니다.
+> 기존 업무/서비스가 동작하는 Linux보다 **전용 OrbStack Ubuntu machine/VM/실습 Linux**를 권장합니다. 공식 요구사항은 인바운드 허용을 `20022/tcp`, `15034/tcp`만 남겨야 하므로 다른 서비스가 필요한 환경에서는 충돌할 수 있습니다.
+
+## Host / Guest 구분
+
+### macOS Host
+
+- OrbStack 실행
+- Ubuntu machine 실행·접속
+- 필요 시 저장소 위치 확인
+
+### OrbStack Ubuntu 24.04
+
+- `apt`
+- `systemctl`
+- OpenSSH Server
+- UFW
+- Linux 사용자/그룹
+- ACL
+- Agent
+- `monitor.sh`
+- cron
+- `verify.sh`
+
+B1-1의 평가와 Evidence는 Ubuntu Guest 내부의 실제 결과를 기준으로 합니다.
 
 ## 필요한 명령
 
-Runtime 시작 전 다음 명령 존재 여부를 확인합니다.
+Runtime 시작 전 Ubuntu 내부에서 다음 명령 존재 여부를 확인합니다.
 
 ```bash
 for c in bash ssh sshd ss ps pgrep df stat getfacl setfacl crontab unzip file runuser git awk grep find; do
@@ -29,10 +68,36 @@ sudo apt update
 sudo apt install -y openssh-server ufw acl cron unzip file procps iproute2 util-linux
 ```
 
+## OrbStack Runtime Baseline
+
+Ubuntu 내부에서 먼저 다음을 확인합니다.
+
+```bash
+cat /etc/os-release
+uname -m
+uname -a
+ps -p 1 -o comm=
+systemctl is-system-running || true
+hostname
+cat /proc/version
+whoami
+id
+```
+
+해석 기준:
+
+- `/etc/os-release` → Ubuntu 24.04 계열 확인
+- `uname -m` → 실제 Agent binary 선택 기준
+- `ps -p 1 -o comm=` → `systemd` 여부 확인
+- `WSL marker not detected`가 나오는 것은 OrbStack에서는 이상이 아닐 수 있음
+- macOS CPU 종류만 보고 Guest architecture를 추측하지 않음
+
 ## B1-1 중요 포트
 
-- `20022/tcp` — SSH
+- `20022/tcp` — Ubuntu OpenSSH Server
 - `15034/tcp` — Agent application
+
+OrbStack 자체의 machine 접속 기능과 B1-1에서 구성하는 `sshd:20022`는 동일한 것으로 간주하지 않습니다. Mission Runtime에서는 Ubuntu 내부 OpenSSH Server와 Port 상태를 별도로 검증합니다.
 
 ## 중요 계정/그룹
 
@@ -58,6 +123,23 @@ sudo apt install -y openssh-server ufw acl cron unzip file procps iproute2 util-
 /var/log/agent-app
 ```
 
+## UFW / Network 사전조건
+
+```text
+macOS / OrbStack network
+≠
+Ubuntu 내부 UFW
+```
+
+R01의 Firewall 판정은 Ubuntu 내부 UFW를 기준으로 합니다.
+
+```bash
+sudo ufw status verbose
+sudo ss -lntp | grep -E ':(22|20022|15034)\b' || true
+```
+
+Host의 network 상태만 보고 UFW PASS를 판정하지 않습니다.
+
 ## Secret 사전조건
 
 실제 Secret은 Repository에 저장하지 않습니다.
@@ -72,7 +154,10 @@ $AGENT_HOME/api_keys/t_secret.key
 
 ## Runtime 전 안전 확인
 
+- 현재 shell이 **OrbStack Ubuntu 24.04 내부**인지 확인
 - Git working tree에 예상하지 못한 변경이 있으면 먼저 검토
 - SSH 변경 전 현재 연결과 설정을 백업
 - UFW가 이미 active라면 새 SSH 포트 `20022/tcp`를 먼저 허용하고 기존 SSH 경로는 새 접속 검증까지 유지
 - 기존 `agent-*` 사용자/그룹/디렉터리가 있으면 자동 삭제하지 않음
+- Agent binary는 반드시 Ubuntu 내부 `uname -m` 실제 결과를 보고 선택
+- 실제 Runtime/Evidence 전에는 `✅ CLEAR`로 표시하지 않음
