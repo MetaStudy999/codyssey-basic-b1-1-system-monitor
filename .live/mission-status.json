@@ -1,20 +1,29 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "cycle_id": "restart-20260816",
   "mission": "B1-1",
   "repository": "MetaStudy999/codyssey-basic-b1-1-system-monitor",
-  "updated_at": "2026-08-09T06:41:00+09:00",
-  "source": "bootstrap-from-repository-evidence",
-  "workcell_status": "NEEDS-RUNTIME",
-  "current_gate": "G5_RUNTIME",
+  "updated_at": "2026-08-16T09:29:00+09:00",
+  "source": "new-baseline-revalidated",
+  "execution_state": "ACTIVE",
+  "current_gate": "G2_BUILD",
   "gates": {
     "G1_SOURCE": "PASS",
-    "G2_BUILD": "IMPLEMENTED",
-    "G3_TEST": "TESTED",
+    "G2_BUILD": "TODO",
+    "G3_TEST": "TODO",
     "G4_REVIEW": "TODO",
-    "G5_RUNTIME": "NEEDS-RUNTIME",
+    "G5_RUNTIME": "TODO",
     "G6_EVIDENCE": "TODO",
-    "G7_LEARN": "PASS",
+    "G7_LEARN": "TODO",
     "G8_MERGE": "TODO"
   },
-  "note": "Initial telemetry snapshot. Update this file whenever a G1-G8 gate changes."
+  "history": {
+    "snapshot_branch": "archive/pre-restart-20260816",
+    "previous_status_file": "schema v1 telemetry preserved on snapshot branch"
+  },
+  "evidence": {
+    "G1_SOURCE": "evidence/new-baseline-source-lock.md"
+  },
+  "next_action": "Audit the existing implementation against the locked mandatory checklist, reuse only matching parts, and repair only the gaps needed for Mission Clear.",
+  "note": "G1 was revalidated from the official 8-page mission PDF, mission Markdown, and evaluation checklist. Old implementation/runtime states are not automatically inherited."
 }
