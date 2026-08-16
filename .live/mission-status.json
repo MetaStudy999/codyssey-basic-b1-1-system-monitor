@@ -3,12 +3,12 @@
   "cycle_id": "restart-20260816",
   "mission": "B1-1",
   "repository": "MetaStudy999/codyssey-basic-b1-1-system-monitor",
-  "updated_at": "2026-08-16T09:26:00+09:00",
-  "source": "new-baseline-reset",
+  "updated_at": "2026-08-16T09:29:00+09:00",
+  "source": "new-baseline-revalidated",
   "execution_state": "ACTIVE",
-  "current_gate": "G1_SOURCE",
+  "current_gate": "G2_BUILD",
   "gates": {
-    "G1_SOURCE": "TODO",
+    "G1_SOURCE": "PASS",
     "G2_BUILD": "TODO",
     "G3_TEST": "TODO",
     "G4_REVIEW": "TODO",
@@ -21,6 +21,9 @@
     "snapshot_branch": "archive/pre-restart-20260816",
     "previous_status_file": "schema v1 telemetry preserved on snapshot branch"
   },
-  "next_action": "Compare the official B1-1 mission source and evaluation, then lock the minimum pass checklist before reusing any old implementation.",
-  "note": "Only results revalidated after the 2026-08-16 baseline may advance this status."
+  "evidence": {
+    "G1_SOURCE": "evidence/new-baseline-source-lock.md"
+  },
+  "next_action": "Audit the existing implementation against the locked mandatory checklist, reuse only matching parts, and repair only the gaps needed for Mission Clear.",
+  "note": "G1 was revalidated from the official 8-page mission PDF, mission Markdown, and evaluation checklist. Old implementation/runtime states are not automatically inherited."
 }
