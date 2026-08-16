@@ -3,16 +3,16 @@
   "cycle_id": "restart-20260816",
   "mission": "B1-1",
   "repository": "MetaStudy999/codyssey-basic-b1-1-system-monitor",
-  "updated_at": "2026-08-16T09:42:00+09:00",
+  "updated_at": "2026-08-16T09:49:00+09:00",
   "source": "new-baseline-revalidated",
-  "execution_state": "ACTIVE",
-  "current_gate": "G4_REVIEW",
+  "execution_state": "NEEDS-RUNTIME",
+  "current_gate": "G5_RUNTIME",
   "gates": {
     "G1_SOURCE": "PASS",
     "G2_BUILD": "PASS",
     "G3_TEST": "PASS",
-    "G4_REVIEW": "TODO",
-    "G5_RUNTIME": "TODO",
+    "G4_REVIEW": "PASS",
+    "G5_RUNTIME": "NEEDS-RUNTIME",
     "G6_EVIDENCE": "TODO",
     "G7_LEARN": "TODO",
     "G8_MERGE": "TODO"
@@ -24,8 +24,9 @@
   "evidence": {
     "G1_SOURCE": "evidence/new-baseline-source-lock.md",
     "G2_BUILD": "evidence/new-baseline-build-audit.md",
-    "G3_TEST": "evidence/new-baseline-test-results.md"
+    "G3_TEST": "evidence/new-baseline-test-results.md",
+    "G4_REVIEW": "evidence/new-baseline-review.md"
   },
-  "next_action": "Review the minimum implementation and runtime guide against the official evaluation, remove any dangerous or misleading old instructions, then prepare one-shot Ubuntu runtime verification.",
-  "note": "G2 minimum implementation was repaired and G3 static/behavior tests passed. Actual Ubuntu runtime remains unverified."
+  "next_action": "Run docs/00-new-baseline-runtime.md on the target Ubuntu host, then execute scripts/runtime-acceptance.sh and capture only the failed items plus Agent Boot/READY output.",
+  "note": "Repository source/build/test/review are revalidated. Actual SSH/UFW/IAM/ACL/Agent/cron/logrotate runtime remains intentionally unclaimed until user-host evidence is captured."
 }
