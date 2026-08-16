@@ -3,14 +3,14 @@
   "cycle_id": "restart-20260816",
   "mission": "B1-1",
   "repository": "MetaStudy999/codyssey-basic-b1-1-system-monitor",
-  "updated_at": "2026-08-16T09:29:00+09:00",
+  "updated_at": "2026-08-16T09:42:00+09:00",
   "source": "new-baseline-revalidated",
   "execution_state": "ACTIVE",
-  "current_gate": "G2_BUILD",
+  "current_gate": "G4_REVIEW",
   "gates": {
     "G1_SOURCE": "PASS",
-    "G2_BUILD": "TODO",
-    "G3_TEST": "TODO",
+    "G2_BUILD": "PASS",
+    "G3_TEST": "PASS",
     "G4_REVIEW": "TODO",
     "G5_RUNTIME": "TODO",
     "G6_EVIDENCE": "TODO",
@@ -22,8 +22,10 @@
     "previous_status_file": "schema v1 telemetry preserved on snapshot branch"
   },
   "evidence": {
-    "G1_SOURCE": "evidence/new-baseline-source-lock.md"
+    "G1_SOURCE": "evidence/new-baseline-source-lock.md",
+    "G2_BUILD": "evidence/new-baseline-build-audit.md",
+    "G3_TEST": "evidence/new-baseline-test-results.md"
   },
-  "next_action": "Audit the existing implementation against the locked mandatory checklist, reuse only matching parts, and repair only the gaps needed for Mission Clear.",
-  "note": "G1 was revalidated from the official 8-page mission PDF, mission Markdown, and evaluation checklist. Old implementation/runtime states are not automatically inherited."
+  "next_action": "Review the minimum implementation and runtime guide against the official evaluation, remove any dangerous or misleading old instructions, then prepare one-shot Ubuntu runtime verification.",
+  "note": "G2 minimum implementation was repaired and G3 static/behavior tests passed. Actual Ubuntu runtime remains unverified."
 }
