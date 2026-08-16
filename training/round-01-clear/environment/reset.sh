@@ -18,6 +18,9 @@ It NEVER removes:
 - t_secret.key
 - runtime logs/Evidence
 
+R01 Golden Path:
+  AGENT_HOME=/opt/agent-app
+
 Run:
   sudo ./reset.sh --apply
 EOF
@@ -29,7 +32,7 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-AGENT_HOME="${AGENT_HOME:-/home/agent-admin/agent-app}"
+AGENT_HOME="${AGENT_HOME:-/opt/agent-app}"
 MARKER="${AGENT_HOME}/.codyssey-b1-1-round01"
 
 if [ ! -f "$MARKER" ]; then
@@ -47,12 +50,14 @@ done
 cat <<'EOF'
 [PASS] Conservative reset complete.
 
-Kept intentionally:
-- users/groups
-- directories
+Kept intentionally because automatic deletion could be destructive:
+- users/groups and memberships
+- shared directories
 - t_secret.key
 - /var/log/agent-app contents
 - SSH configuration
 - Firewall configuration
-- cron (remove manually only after reviewing the exact entry)
+- cron entries
+
+Review the exact pre-R01 state before manually reverting any of those items.
 EOF
