@@ -1,12 +1,13 @@
 # B1-1 monitor.log rotation policy
 # Install as /etc/logrotate.d/agent-monitor
+# Keep at most 10 files total: current monitor.log + 9 rotated files.
 
 /var/log/agent-app/monitor.log {
     size 10M
-    rotate 10
+    rotate 9
     compress
     missingok
     notifempty
     su agent-admin agent-core
-    create 0640 agent-admin agent-core
+    create 0660 agent-admin agent-core
 }
