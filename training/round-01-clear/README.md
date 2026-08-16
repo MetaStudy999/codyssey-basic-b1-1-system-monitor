@@ -1,22 +1,39 @@
-# Round 01 — CLEAR
+# B1-1 Round 01 — CLEAR
 
-## 목표
-입문자가 공식 미션과 평가 기준을 바탕으로 설명을 따라가며 이 미션을 실제로 완료합니다.
+## 현재 상태
 
-## 진행 순서
-1. Mission/Evaluation 확인
-2. 필요한 용어 학습
-3. 핵심 개념과 개념도 확인
-4. 환경 확인 및 설정
-5. 단계별 구현
-6. 실행 및 테스트
-7. 오류 해결
-8. Evidence 확보
-9. Checklist 확인
-10. Mission CLEAR
+- Runtime Mission: **🟡 ACTIVE**
+- Phase A Reference Build: **CORE READY**
+- Runtime/Evidence: **미검증**
+- CLEAR: **아님**
 
-## 핵심 문서
-- `BEGINNER-GUIDE.md`: 처음부터 끝까지 따라하는 학습/실습 가이드
-- `CHECKLIST.md`: 공식 요구사항 누락과 최종 CLEAR 여부 확인
+## 시작 순서
 
-상세 환경 폴더, 구현물, 테스트, 문서, Evidence는 실제로 필요해지는 시점에만 생성합니다.
+1. `REFERENCE-STATUS.md` — Phase A 자체감사 결과
+2. `REFERENCE-BUILD.md` — Reference 설계와 보완 내용
+3. `BEGINNER-GUIDE.md` — Phase C 실제 15-Step 따라하기
+4. `CHECKLIST.md` — Mission/Evaluation/CLEAR Gate
+
+## Golden Path
+
+```text
+Ubuntu 22.04 LTS 또는 동등 Linux
++ systemd
++ OpenSSH Server
++ UFW
++ Bash
++ AGENT_HOME=/opt/agent-app
+```
+
+## 폴더 역할
+
+- `environment/` — prerequisites, versions, setup/verify/reset
+- `docs/` — requirements mapping, evaluation Q&A
+- `evidence/` — 실제 Runtime Evidence 수집 규칙
+- `monitor.sh` — 기준 Bash 관제 구현
+
+## 핵심 운영 규칙
+
+Phase A에서 Reference가 준비되었더라도 실제 SSH/UFW/사용자 권한/Agent/15034/monitor/cron/로그 회전/Evidence를 확인하지 않았다면 `✅ CLEAR`가 아닙니다.
+
+실제 Secret 값은 GitHub·채팅·로그·Evidence에 저장하지 않습니다.
