@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # B1-1 R01 reproduction helper.
-# Round 01 primary path is still the manual BEGINNER-GUIDE.
+# Round 01 primary path is the manual BEGINNER-GUIDE.
 # This helper intentionally does NOT modify SSH or Firewall rules.
 
 set -euo pipefail
@@ -9,10 +9,17 @@ if [ "${1:-}" != "--apply" ]; then
     cat <<'EOF'
 B1-1 R01 setup helper
 
-This script creates/normalizes only the Agent users, groups, directories,
+This helper creates/normalizes only the Agent users, groups, shared directories,
 non-secret env.sh, and monitor.sh installation.
 
-It does NOT modify SSH or Firewall settings.
+It does NOT modify:
+- SSH configuration
+- Firewall rules
+- the Secret value/file
+- cron
+
+R01 Golden Path:
+  AGENT_HOME=/opt/agent-app
 
 Run only after reading BEGINNER-GUIDE.md:
   sudo ./setup.sh --apply
@@ -25,7 +32,7 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-AGENT_HOME="${AGENT_HOME:-/home/agent-admin/agent-app}"
+AGENT_HOME="${AGENT_HOME:-/opt/agent-app}"
 AGENT_LOG_DIR="${AGENT_LOG_DIR:-/var/log/agent-app}"
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROUND_DIR=$(cd "${SCRIPT_DIR}/.." && pwd)
@@ -65,13 +72,16 @@ usermod -aG agent-common agent-test
 
 echo "[PASS] group membership configured"
 
-install -d -o agent-admin -g agent-core -m 0750 "$AGENT_HOME"
+# Golden Path uses /opt instead of nesting the shared tree below one user's home.
+# Parent AGENT_HOME grants agent-common traverse only (x), not directory listing.
+# That lets agent-test reach upload_files while api_keys/bin stay core-restricted.
+install -d -o agent-admin -g agent-common -m 0710 "$AGENT_HOME"
 install -d -o agent-admin -g agent-common -m 2770 "${AGENT_HOME}/upload_files"
 install -d -o agent-admin -g agent-core -m 2770 "${AGENT_HOME}/api_keys"
 install -d -o agent-dev -g agent-core -m 0750 "${AGENT_HOME}/bin"
 install -d -o agent-admin -g agent-core -m 2770 "$AGENT_LOG_DIR"
 
-# Default ACLs keep newly-created files group-accessible in shared directories.
+# Default ACLs preserve group write access for files created later.
 if command -v setfacl >/dev/null 2>&1; then
     setfacl -m g:agent-common:rwx,m:rwx "${AGENT_HOME}/upload_files"
     setfacl -d -m g:agent-common:rwx,m:rwx "${AGENT_HOME}/upload_files"
@@ -91,19 +101,32 @@ if [ ! -f "$REFERENCE_MONITOR" ]; then
     exit 1
 fi
 
-install -o agent-dev -g agent-core -m 0750 "$REFERENCE_MONITOR" "${AGENT_HOME}/bin/monitor.sh"
+# Do not silently overwrite an unrelated existing monitor implementation.
+if [ -f "${AGENT_HOME}/bin/monitor.sh" ] && ! cmp -s "$REFERENCE_MONITOR" "${AGENT_HOME}/bin/monitor.sh"; then
+    echo "[FAIL] existing ${AGENT_HOME}/bin/monitor.sh differs from the R01 reference." >&2
+    echo "       Review/back up it manually before replacing it." >&2
+    exit 1
+fi
 
+install -o agent-dev -g agent-core -m 0750 "$REFERENCE_MONITOR" "${AGENT_HOME}/bin/monitor.sh"
 echo "[PASS] monitor.sh installed"
 
+# env.sh contains paths/settings only; never put the Secret value here.
+if [ -e "${AGENT_HOME}/env.sh" ] && ! grep -q '^# B1-1 R01 non-secret runtime environment$' "${AGENT_HOME}/env.sh" 2>/dev/null; then
+    echo "[FAIL] existing ${AGENT_HOME}/env.sh is not owned by this helper." >&2
+    echo "       Review/back up it manually before replacing it." >&2
+    exit 1
+fi
+
 cat > "${AGENT_HOME}/env.sh" <<EOF
-# B1-1 non-secret runtime environment
+# B1-1 R01 non-secret runtime environment
 export AGENT_HOME="${AGENT_HOME}"
 export AGENT_PORT="15034"
 export AGENT_UPLOAD_DIR="${AGENT_HOME}/upload_files"
 export AGENT_KEY_PATH="${AGENT_HOME}/api_keys/t_secret.key"
 export AGENT_LOG_DIR="${AGENT_LOG_DIR}"
-# Adjust after inspecting agent-app.zip if the executable name differs.
-export AGENT_PROCESS_PATTERN="agent-app|agent_app.py"
+# The selected provided binary is installed with this canonical basename.
+export AGENT_PROCESS_NAME="agent-app"
 EOF
 chown agent-admin:agent-core "${AGENT_HOME}/env.sh"
 chmod 0640 "${AGENT_HOME}/env.sh"
@@ -123,7 +146,7 @@ NOT DONE by this helper:
 - Root remote login policy
 - Firewall rules
 - t_secret.key creation/value
-- Agent application execution
+- Agent application installation/execution
 - cron registration
 - Runtime verification/Evidence
 EOF
