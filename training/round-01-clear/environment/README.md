@@ -22,6 +22,29 @@ macOS Host
 
 상세 규칙: `ORBSTACK-UBUNTU-24.04.md`
 
+## VS Code Remote Workspace
+
+macOS에서 VS Code를 실행하더라도 실제 B1-1 Repository와 Terminal은 Ubuntu 내부를 사용합니다.
+
+```text
+macOS VS Code
+→ Remote-SSH `orb`
+→ OrbStack Ubuntu 24.04
+→ $HOME/codyssey/codyssey-basic-b1-1-system-monitor
+→ Ubuntu Bash
+```
+
+Primary Workspace는 Ubuntu `$HOME/codyssey/...`에 두고 다음 macOS shared path는 기본 작업경로로 사용하지 않습니다.
+
+```text
+/Users/<mac-user>/...
+/mnt/mac/Users/<mac-user>/...
+```
+
+Repository Root의 `.vscode/settings.json`은 새 Terminal을 `${workspaceFolder}`에서 Bash로 시작하도록 설정합니다.
+
+상세 따라하기: `VS-CODE-REMOTE-UBUNTU.md`
+
 ## R01 Golden Path
 
 - 현재 실제 Guest: **OrbStack Ubuntu 24.04**
@@ -71,6 +94,7 @@ macOS Host
 ## 파일
 
 - `ORBSTACK-UBUNTU-24.04.md` — 현재 macOS + OrbStack Ubuntu 24.04 Runtime 기준
+- `VS-CODE-REMOTE-UBUNTU.md` — VS Code Remote-SSH, Ubuntu Workspace, Bash Terminal 기준
 - `prerequisites.md` — 시작 조건과 필요한 도구
 - `versions.md` — 기준과 실제 검증 버전
 - `setup.sh` — 계정/그룹/디렉터리/monitor 설치 재현 보조
