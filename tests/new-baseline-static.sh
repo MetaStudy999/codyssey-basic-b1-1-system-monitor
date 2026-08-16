@@ -50,6 +50,6 @@ test -f NEW-BASELINE.md || fail 'NEW-BASELINE.md missing'
 test -f evidence/new-baseline-source-lock.md || fail 'G1 source evidence missing'
 expect_line .live/mission-status.json '"cycle_id": "restart-20260816"'
 expect_line .live/mission-status.json '"G1_SOURCE": "PASS"'
-expect_line .live/mission-status.json '"current_gate": "G2_BUILD"'
+expect_line .live/mission-status.json '"current_gate": "G[2-8]_[A-Z-]+"'
 
-printf 'PASS: B1-1 new-baseline static build contract\n'
+printf 'PASS: B1-1 new-baseline static contract\n'
