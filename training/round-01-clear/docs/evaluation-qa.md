@@ -8,23 +8,25 @@
 
 ## 2. 왜 Firewall은 20022와 15034만 허용하는가?
 
-B1-1에서 외부 통신에 필요한 서비스가 SSH와 Agent뿐이므로 필요한 포트만 열어 공격 표면을 줄입니다. 사용하지 않는 포트를 열어 두면 해당 포트에서 실행되는 서비스의 취약점이 외부에 노출될 수 있습니다.
+B1-1에서 외부 통신에 필요한 서비스가 SSH와 Agent뿐이므로 필요한 인바운드 포트만 열어 공격 표면을 줄입니다. R01 Golden Path에서는 UFW의 기본 인바운드를 `deny`로 두고 `20022/tcp`, `15034/tcp`만 `ALLOW IN`으로 남깁니다. 단, SSH 전환 중에는 접속 손실을 막기 위해 새 20022 연결이 성공할 때까지 기존 SSH 경로를 임시로 유지한 뒤 최종 정리합니다.
 
 ## 3. 왜 `agent-common`과 `agent-core`를 나누는가?
 
 `agent-common`은 admin/dev/test가 함께 쓰는 업로드 영역을 위한 공유 그룹이고, `agent-core`는 admin/dev만 접근해야 하는 API Key와 로그 등 운영 핵심 영역을 위한 제한 그룹입니다. 역할별로 필요한 범위만 허용하는 최소 권한 원칙을 적용한 것입니다.
 
+R01에서는 `AGENT_HOME=/opt/agent-app`을 사용합니다. 상위 디렉터리를 `agent-common`이 traverse할 수 있게 하고, `upload_files`는 common R/W, `api_keys`와 로그는 core R/W로 분리하면 `agent-test`가 공유 영역에는 접근하면서 민감 영역에는 접근하지 못하는 것을 실제 사용자 권한으로 검증하기 쉽습니다.
+
 ## 4. 왜 monitor.sh의 소유자는 agent-dev이고 실행자는 agent-admin인가?
 
-개발자는 스크립트를 작성·관리하고 운영 계정은 cron으로 실행하는 책임을 분리하기 위해서입니다. 파일을 `agent-dev:agent-core`, `750`으로 두면 소유자는 수정·실행할 수 있고, 같은 core 그룹의 `agent-admin`은 실행/읽기가 가능하며, 그 외 사용자는 접근할 수 없습니다.
+개발자는 스크립트를 작성·관리하고 운영 계정은 cron으로 실행하는 책임을 분리하기 위해서입니다. 파일을 `agent-dev:agent-core`, `750`으로 두면 소유자는 수정·실행할 수 있고, 같은 core 그룹의 `agent-admin`은 읽기/실행이 가능하며, `agent-test`는 접근할 수 없습니다.
 
 ## 5. `pgrep`/`ps`와 `ss`를 왜 사용하는가?
 
-`pgrep -f`는 실행 중인 프로세스를 명령행 패턴으로 찾기 쉽고, `ps`는 해당 PID의 CPU/MEM 등 프로세스 정보를 가져올 수 있습니다. `ss`는 Linux의 현재 소켓 상태를 확인하는 도구로 TCP 15034가 실제 LISTEN인지 검증하는 데 적합합니다.
+R01 Reference는 제공 실행 파일을 canonical 이름 `agent-app`으로 설치하고 `pgrep -x agent-app`으로 **정확한 프로세스 이름**을 찾습니다. `-x`를 사용하면 `/opt/agent-app/bin/monitor.sh`처럼 경로 문자열에 `agent-app`이 포함된 다른 프로세스를 오인하는 일을 줄일 수 있습니다. 찾은 PID는 `ps`로 CPU/MEM과 실행 사용자를 확인합니다. `ss`는 Linux의 현재 소켓 상태를 확인하는 도구이므로 TCP 15034가 실제 `LISTEN`인지 검증하는 데 사용합니다.
 
 ## 6. CPU/MEM/DISK는 어떻게 수집하는가?
 
-Reference 구현은 Agent PID를 찾은 뒤 `ps`에서 해당 프로세스의 `%CPU`, `%MEM`을 읽습니다. Root filesystem의 사용률은 `df -P /`의 Used% 값을 파싱합니다. `awk`를 사용해 필요한 숫자만 추출하고 임계값과 비교합니다.
+Reference 구현은 Agent PID를 찾은 뒤 `ps`에서 해당 프로세스의 `%CPU`, `%MEM`을 읽습니다. Root filesystem의 사용률은 `df -P /`의 Used% 값을 파싱합니다. `awk`를 사용해 필요한 숫자만 추출하고 임계값과 비교합니다. 기본 임계값은 공식 요구사항인 CPU 20%, MEM 10%, DISK_USED 80%이며, 테스트 시에만 환경변수로 낮춰 Warning 경로를 안전하게 재현할 수 있게 했습니다.
 
 ## 7. 왜 Process/Port 실패는 exit 1이고 Firewall/임계값은 Warning인가?
 
@@ -36,23 +38,31 @@ Reference 구현은 Agent PID를 찾은 뒤 `ps`에서 해당 프로세스의 `%
 
 ## 9. 10MB / 10개 로그 관리는 어떻게 구현했는가?
 
-Reference `monitor.sh`는 현재 `monitor.log`가 10MB 이상이면 번호가 붙은 이전 로그를 한 단계씩 이동하고 가장 오래된 `.9`를 제거한 뒤 현재 로그를 `.1`로 회전시킵니다. 새 `monitor.log`까지 포함해 최대 10개 파일을 유지하는 방식입니다.
+Reference `monitor.sh`는 현재 `monitor.log`가 기본 10MB 이상이면 회전을 시작합니다. 전체 최대 파일 수 10개에는 active `monitor.log`도 포함되므로 회전 파일은 `.1`부터 `.9`까지 유지합니다. 가장 오래된 번호 파일을 먼저 제거하고 나머지를 뒤로 이동한 뒤 active 로그를 `.1`로 바꾸고 새 active 로그를 생성합니다. Runtime에서는 `/tmp` 테스트 디렉터리에 10MB sparse file과 번호 로그를 만들어 실제 운영 로그를 손상시키지 않고 동작을 확인합니다.
 
 ## 10. Process는 있는데 Port가 열리지 않으면 무엇을 확인하는가?
 
-1. 프로세스가 실제 Agent가 맞는지 PID/명령행 확인
-2. 애플리케이션 로그에서 Boot 실패 또는 bind 오류 확인
+1. `pgrep -x`와 `ps`로 프로세스가 실제 Agent가 맞는지 확인
+2. 애플리케이션 시작 출력에서 Boot 실패 또는 bind 오류 확인
 3. `ss -lntp`로 15034가 다른 프로세스에 점유됐는지 확인
 4. `AGENT_PORT` 값 확인
 5. bind 주소가 localhost로 제한되지 않았는지 확인
 6. 필요 시 프로세스를 정상 종료한 뒤 설정 수정 후 재기동
 
-Firewall은 LISTEN 자체를 만들지 않으므로 먼저 애플리케이션 bind 문제를 확인하고 그 다음 외부 접근 정책을 봅니다.
+Firewall은 LISTEN 소켓 자체를 만들지 않으므로 먼저 애플리케이션 bind 문제를 확인하고 그 다음 외부 접근 정책을 봅니다.
 
 ## 11. 모니터링 대상이 Nginx로 바뀌면 무엇을 바꾸는가?
 
-핵심 변경점은 프로세스 식별 패턴, 서비스 포트, 필요 로그 경로, 서비스 특성에 맞는 임계값입니다. 관제 구조 자체인 `Process → Port → Resource → Warning → Log` 흐름은 재사용할 수 있습니다.
+핵심 변경점은 프로세스 식별 기준, 서비스 포트, 필요 로그 경로, 서비스 특성에 맞는 임계값입니다. 관제 구조 자체인 `Process → Port → Resource → Warning → Log` 흐름은 재사용할 수 있습니다.
 
 ## 12. 로그가 급증해 디스크가 찰 위험이 있으면?
 
 단기적으로는 원인이 되는 폭증 프로세스/에러를 확인하고 로그 회전·압축으로 디스크 고갈을 막습니다. 중기적으로는 로그 레벨, 보존 기간, 회전 기준, 디스크 모니터링 임계값을 조정하고 반복 원인을 수정합니다. 무조건 로그를 삭제하기 전에 장애 분석에 필요한 증거를 보존해야 합니다.
+
+## 13. 왜 실제 권한은 `ls -l`만 보지 않고 사용자별 `test`로도 확인하는가?
+
+owner/group/mode와 ACL이 눈으로 맞아 보여도 상위 디렉터리의 execute 권한이나 ACL mask 때문에 실제 접근이 막힐 수 있습니다. 따라서 `runuser -u agent-test -- test ...`처럼 각 역할 계정으로 실제 읽기/쓰기 가능 여부를 확인해야 정책이 최종적으로 맞는지 검증할 수 있습니다.
+
+## 14. 왜 verify.sh는 sudo로 실행하지만 '검증 전용'인가?
+
+SSH effective config, UFW, 다른 사용자 권한, 다른 사용자의 crontab처럼 일반 계정으로 읽기 어려운 정보를 확인하기 위해 관리자 읽기 권한이 필요합니다. 하지만 `verify.sh`는 설정 파일을 쓰거나 서비스를 재시작하거나 Firewall 규칙을 변경하지 않습니다. 권한 수준과 작업 목적을 분리한 것입니다.
