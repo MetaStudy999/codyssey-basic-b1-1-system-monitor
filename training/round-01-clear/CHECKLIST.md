@@ -7,7 +7,9 @@
 - Training Round: **R01 — CLEAR**
 - Mission: **B1-1**
 - Mission 상태: **🟡 ACTIVE**
-- 현재 Step: **STEP 01 — 현재 실행 환경 Baseline 확인**
+- 현재 운영 모드: **Phase A — REFERENCE BUILD**
+
+Reference Build는 기준 구현과 학습·검증 자료를 미리 준비하는 단계입니다. 아래 공식 Runtime 요구사항은 실제 환경에서 확인하기 전까지 체크하지 않습니다.
 
 ## A. Source
 
@@ -19,7 +21,24 @@
 - [x] 필수 요구사항과 보너스 요구사항 분리
 - [x] Reference Complete Path 설계
 
-## B. 공식 필수 요구사항
+## A-1. Reference Build 준비물
+
+- [x] `REFERENCE-BUILD.md`
+- [x] 기준 `monitor.sh`
+- [x] `environment/README.md`
+- [x] `environment/prerequisites.md`
+- [x] `environment/versions.md`
+- [x] 재현 보조 `environment/setup.sh`
+- [x] 검증 전용 `environment/verify.sh`
+- [x] 보수적 `environment/reset.sh`
+- [x] `docs/requirements-mapping.md`
+- [x] `docs/evaluation-qa.md`
+- [x] `evidence/README.md`
+- [x] 실제 Secret 값을 Reference 파일에 저장하지 않음
+- [ ] `BEGINNER-GUIDE.md` 전체 Runtime Step 구체화
+- [ ] Reference Build 자체 검토 완료
+
+## B. 공식 필수 요구사항 — Runtime에서 검증
 
 ### B1. SSH / Firewall
 
@@ -65,25 +84,26 @@
 
 ### B4. `monitor.sh`
 
-- [ ] 경로 `$AGENT_HOME/bin/monitor.sh`
+- [ ] Runtime 경로 `$AGENT_HOME/bin/monitor.sh`
 - [ ] 소유자 `agent-dev`
 - [ ] 그룹 `agent-core`
 - [ ] 권한 `750`
-- [ ] Bash로 구현
-- [ ] 대상 프로세스 Health Check
-- [ ] 프로세스 비정상 시 `exit 1`
-- [ ] TCP `15034` Health Check
-- [ ] 포트 비정상 시 `exit 1`
-- [ ] Firewall 비활성 시 `[WARNING]` 후 계속 실행
-- [ ] CPU 사용률 수집
-- [ ] MEM 사용률 수집
-- [ ] Root filesystem DISK 사용률 수집
-- [ ] CPU `> 20%` WARNING
-- [ ] MEM `> 10%` WARNING
-- [ ] DISK_USED `> 80%` WARNING
-- [ ] `/var/log/agent-app/monitor.log` 누적 기록
-- [ ] 공식 로그 포맷 충족
-- [ ] 로그 관리 `10MB / 10개` 적용
+- [x] Reference 구현은 Bash로 작성
+- [x] Reference 구현에 대상 프로세스 Health Check 포함
+- [x] Reference 구현에 프로세스 비정상 `exit 1` 포함
+- [x] Reference 구현에 TCP `15034` Health Check 포함
+- [x] Reference 구현에 포트 비정상 `exit 1` 포함
+- [x] Reference 구현에 Firewall 비활성 `[WARNING]` 후 계속 실행 포함
+- [x] Reference 구현에 CPU 사용률 수집 포함
+- [x] Reference 구현에 MEM 사용률 수집 포함
+- [x] Reference 구현에 Root filesystem DISK 사용률 수집 포함
+- [x] Reference 구현에 CPU `> 20%` WARNING 포함
+- [x] Reference 구현에 MEM `> 10%` WARNING 포함
+- [x] Reference 구현에 DISK_USED `> 80%` WARNING 포함
+- [x] Reference 구현에 `/var/log/agent-app/monitor.log` 누적 포함
+- [x] Reference 구현에 공식 로그 포맷 포함
+- [x] Reference 구현에 로그 관리 `10MB / 10개` 포함
+- [ ] 위 `monitor.sh` 항목 실제 Runtime 동작 검증
 
 ### B5. cron
 
@@ -91,9 +111,9 @@
 - [ ] cron 실행 권한 확인
 - [ ] 등록 후 1~2분 내 `monitor.log` 실제 증가 확인
 
-## C. STEP 01 — Baseline
+## C. Baseline — Runtime 시작 시
 
-> 이번 Step은 읽기 전용 확인 단계입니다. 시스템 변경을 하지 않습니다.
+> 읽기 전용 확인 단계입니다. 시스템 변경을 하지 않습니다.
 
 - [ ] OS / Version 확인
 - [ ] CPU Architecture 확인
@@ -110,7 +130,6 @@
 - [ ] Git working tree 확인
 - [ ] Git remote 확인
 - [ ] Baseline 결과를 `[PASS]/[FAIL]` 형식으로 판정
-- [ ] STEP 01 완료
 
 ## D. Evaluation — 항목 1: 요구사항 구현 및 동작
 
@@ -125,60 +144,64 @@
 
 ## E. Evaluation — 항목 2: 구현 방식 및 명령어 설명
 
-- [ ] 프로세스 확인 명령과 선택 이유 설명
-- [ ] 포트 확인 명령과 선택 이유 설명
-- [ ] CPU/MEM/DISK 추출·파싱 방식 설명
-- [ ] 로그 포맷을 고정한 이유 설명
-- [ ] `agent-dev` 소유자 / `agent-admin` 실행자 구조 설명
-- [ ] owner/group/mode 관점에서 cron 실행 권한 설명
-- [ ] `10MB / 10개` 로그 관리 구현 방식 설명
+- [x] Reference Q&A에 프로세스 확인 명령과 선택 이유 정리
+- [x] Reference Q&A에 포트 확인 명령과 선택 이유 정리
+- [x] Reference Q&A에 CPU/MEM/DISK 추출·파싱 방식 정리
+- [x] Reference Q&A에 로그 포맷을 고정한 이유 정리
+- [x] Reference Q&A에 `agent-dev` 소유자 / `agent-admin` 실행자 구조 정리
+- [x] Reference Q&A에 owner/group/mode 관점의 cron 실행 권한 정리
+- [x] Reference Q&A에 `10MB / 10개` 로그 관리 구현 방식 정리
+- [ ] 사용자가 Runtime 결과를 근거로 자기 말로 설명
 
 ## F. Evaluation — 항목 3: 보안·권한·운영 원리
 
-- [ ] SSH 포트 변경과 Root 원격 차단의 보안 의미 설명
-- [ ] `agent-core`로 보안 디렉터리를 제한한 최소 권한 원칙 설명
-- [ ] Health Check 실패와 WARNING을 구분한 운영 이유 설명
-- [ ] `>`와 `>>` 차이와 로그 누적에서 `>>`가 필요한 이유 설명
+- [x] Reference Q&A에 SSH 포트 변경과 Root 원격 차단의 보안 의미 정리
+- [x] Reference Q&A에 `agent-core` 최소 권한 원칙 정리
+- [x] Reference Q&A에 Health Check 실패와 WARNING 구분 이유 정리
+- [x] Reference Q&A에 `>`와 `>>` 차이 정리
+- [ ] 사용자가 자기 말로 설명
 
 ## G. Evaluation — 항목 4: 응용 및 장애 대응
 
-- [ ] Nginx 등 다른 서버 관제로 변경 시 수정할 핵심 항목 설명
-- [ ] 프로세스는 실행 중이나 포트가 열리지 않을 때 확인 순서 설명
-- [ ] 로그 급증/디스크 고갈 위험의 단기 대응 설명
-- [ ] 로그 급증/디스크 고갈 위험의 중기 대응 설명
+- [x] Reference Q&A에 Nginx 등 다른 서버 관제 변경점 정리
+- [x] Reference Q&A에 프로세스는 실행 중이나 포트가 열리지 않을 때 확인 순서 정리
+- [x] Reference Q&A에 로그 급증/디스크 고갈 단기·중기 대응 정리
+- [ ] 사용자가 자기 말로 설명
 
 ## H. Learn
 
-- [ ] 필요한 용어를 각 Step 직전에 JIT 방식으로 설명
-- [ ] 핵심 개념 설명
-- [ ] 필요한 경우 Mermaid 개념도 제공
-- [ ] 개념도 아래 일반 문장 설명 제공
-- [ ] 명령/코드에 입문자용 주석 제공
+- [x] STEP 01 용어를 JIT 방식으로 설명
+- [x] STEP 01 핵심 개념 설명 및 Mermaid 제공
+- [x] 개념도 아래 일반 문장 설명 제공
+- [x] STEP 01 명령/코드에 입문자용 주석 제공
+- [ ] 이후 모든 Runtime Step을 동일 형식으로 완성
 - [ ] 주요 평가 질문을 자기 말로 설명할 수 있음
 
 ## I. Environment
 
-- [ ] Golden Path 확정
-- [ ] 사전 요구사항 확인
+- [ ] Runtime Golden Path 확정
+- [x] Reference 사전 요구사항 문서 준비
 - [ ] 실제 검증한 버전 기록
-- [ ] 필요한 환경 파일만 JIT 방식으로 생성
-- [ ] `setup = 구축`, `verify = 검증`, `reset = 현재 Round 자원만 안전 제거` 원칙 유지
+- [x] 필요한 환경 파일만 JIT 방식으로 생성
+- [x] `setup = 구축`, `verify = 검증`, `reset = 현재 Round 자원만 안전 제거` 원칙 유지
 - [ ] 시스템 변경 전 백업
 - [ ] 설정 변경 후 문법 검사
 - [ ] 서비스 적용 후 실제 상태 확인
-- [ ] Secret이 Git에 포함되지 않음
+- [x] Reference 파일에 실제 Secret 값 없음
 
 ## J. Verify
 
+- [x] 통합 `environment/verify.sh` 기준 구현 준비
+- [ ] `verify.sh` 실제 환경 실행
 - [ ] 자동 검증 가능한 항목 PASS
-- [ ] 실제 Ubuntu/WSL 실행이 필요한 항목은 사용자 Runtime으로 확인
+- [ ] 실제 Ubuntu/WSL 실행이 필요한 항목 확인
 - [ ] 정상 경로 확인
 - [ ] 프로세스 실패 경로 확인
 - [ ] 포트 실패 경로 확인
 - [ ] WARNING 경로 확인
 - [ ] cron 자동 실행 확인
 - [ ] 로그 회전/관리 동작 확인
-- [ ] 실제 실행하지 않은 항목을 PASS로 표시하지 않음
+- [x] 실제 실행하지 않은 항목을 PASS로 표시하지 않음
 
 ## K. Evidence
 
@@ -186,6 +209,7 @@
 
 `Requirement → Implementation → Verification → Evidence`
 
+- [x] Evidence 수집 계획 문서 준비
 - [ ] SSH 설정/실제 LISTEN Evidence
 - [ ] Firewall Evidence
 - [ ] 계정/그룹 Evidence
@@ -213,4 +237,4 @@
 - [ ] `CHECKLIST.md` 최종 확인 완료
 - [ ] **✅ MISSION CLEAR**
 
-B1-1이 `✅ CLEAR`가 되기 전에는 B1-2를 시작하지 않습니다.
+**운영 규칙:** B1-1이 `✅ CLEAR`가 되기 전에는 B1-2의 **Runtime**을 시작하지 않습니다. 다만 Phase A에서는 B1-2 이후 미션의 **Reference Build**를 선제 준비할 수 있습니다.
