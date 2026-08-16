@@ -1,18 +1,27 @@
-# B1-1 Dual Runtime Labs
+# B1-1 Runtime / Optional Docker Labs
 
 ## 목적
 
-B1-1을 **Docker Lab**과 **VM/Linux Machine Lab** 두 관점에서 학습합니다. 다만 공식 Mission/Evaluation의 시스템 요구를 정확히 검증해야 하므로 R01의 Mission CLEAR는 `MAC-V`를 Primary로 사용합니다.
+B1-1의 공식 Mission CLEAR는 실제 Linux 시스템 Runtime에서 수행하고, Docker는 **선택 학습**으로 분리합니다.
 
 ## Runtime Profiles
 
-- Primary: `MAC-V` — macOS → OrbStack → Ubuntu 24.04 Linux Machine
-- Twin: `WIN-V` — Windows 11 Pro → WSL2 → Ubuntu 24.04 direct runtime
-- Docker Practice: `MAC-D`, `WIN-D`
+- Primary CLEAR: `MAC-V` — macOS → OrbStack → Ubuntu 24.04 Linux Machine
+- Secondary Check: `WIN-V` — Windows 11 Pro → WSL2 → Ubuntu 24.04 direct runtime
+- Optional Docker Lab: `MAC-D`, `WIN-D`
 
 ## CLEAR 계약
 
-B1-1에서 Docker는 다음의 최종 Evidence를 대체하지 않습니다.
+B1-1의 Mission CLEAR는 다음으로 판정합니다.
+
+```text
+공식 Mission/Evaluation
++ MAC-V 실제 Runtime
++ verify
++ Evidence
+```
+
+Docker Lab은 다음의 최종 Evidence를 대체하지 않습니다.
 
 - SSH `20022`
 - UFW 최종 정책
@@ -21,11 +30,11 @@ B1-1에서 Docker는 다음의 최종 Evidence를 대체하지 않습니다.
 - system-level cron
 - Agent `15034` 전체 시스템 상태
 
-따라서 **Primary VM/Linux Machine Runtime → Verify → Evidence → CLEAR**가 우선입니다.
+따라서 **Primary Linux Runtime → Verify → Evidence → CLEAR**가 우선이며, Docker 미수행은 B1-1 CLEAR를 막지 않습니다.
 
 ---
 
-# Lab A — VM/Linux Machine Primary
+# Lab A — Primary Linux Runtime
 
 ## ① 왜 하는가
 
@@ -33,7 +42,7 @@ B1-1의 핵심은 Linux 시스템 운영입니다. systemd, sshd, UFW, 사용자
 
 ## ② 무엇을 하는가
 
-`BEGINNER-GUIDE.md`의 15-Step 전체 경로를 수행합니다.
+`BEGINNER-GUIDE.md`의 전체 Runtime 경로를 수행합니다.
 
 ```text
 Baseline
@@ -54,19 +63,9 @@ Baseline
 
 ## ③ 실행 환경
 
-현재 Primary:
-
 ```text
 macOS
 └─ OrbStack
-   └─ Ubuntu 24.04
-```
-
-Twin:
-
-```text
-Windows 11 Pro
-└─ WSL2
    └─ Ubuntu 24.04
 ```
 
@@ -84,11 +83,9 @@ Architecture는 Host CPU 이름으로 추측하지 않고 `uname -m` 결과로 A
 
 ## ⑤ 실제 수행
 
-주 절차는 상위 `BEGINNER-GUIDE.md`를 사용합니다. 이 문서에서 별도의 두 번째 명령 집합을 복제하지 않습니다.
+주 절차는 상위 `BEGINNER-GUIDE.md`를 사용합니다. 이 문서에서 두 번째 명령 집합을 복제하지 않습니다.
 
 ## ⑥ 검증
-
-Runtime 구성이 끝난 뒤:
 
 ```bash
 sudo bash training/round-01-clear/environment/verify.sh
@@ -102,30 +99,47 @@ training/round-01-clear/evidence/
 
 Secret 값은 저장하지 않습니다.
 
-## ⑧ Twin WIN-V에서 확인할 핵심
+---
 
-B1-1 CLEAR 후 또는 별도 Portability 시간에 전체 미션을 처음부터 다시 반복하지 않고 다음을 중심으로 확인합니다.
+# Lab B — Windows/WSL2 Secondary Check (권장)
+
+## ① 목적
+
+B1-1 CLEAR 이후 또는 별도 Portability 시간에 핵심 Linux 경로가 Windows 11 Pro + WSL2 Ubuntu 24.04에서도 재현되는지 확인합니다.
+
+## ② 범위
+
+전체 미션을 다시 반복하지 않고 다음을 중심으로 확인합니다.
 
 - Ubuntu 24.04 / architecture
-- systemd 동작
+- systemd
 - sshd 서비스 가능 여부
 - users/groups/ACL
-- process/port/log/cron 동작
-- OrbStack과 WSL2 차이
+- process/port/log/cron
+- OrbStack과 WSL2의 network/service 차이
 
-WSL2에서 host/network/firewall 계층이 OrbStack과 다르므로 차이를 기록하되 공식 요구를 임의로 바꾸지 않습니다.
+Secondary Check 미완료만으로 B1-1을 BLOCKED 처리하지 않습니다.
 
 ---
 
-# Lab B — Docker Practice
+# Lab C — Optional Docker Practice
 
 ## ① 왜 하는가
 
-B1-1의 Bash monitor와 Agent 관찰 로직을 재현 가능한 격리 환경에서 빠르게 반복하기 위해 사용합니다.
+B1-1 CLEAR에는 필요하지 않지만 Bash monitor와 Agent 관찰 로직을 재현 가능한 격리 환경에서 반복해 보고 싶을 때 사용합니다.
 
-## ② 무엇을 하는가
+## ② 선택 판단
 
-Docker에서는 다음 **애플리케이션/관찰 부분만** 연습합니다.
+```text
+B1-1 CLEAR 진행 중인가?
+→ YES: Docker Lab보다 MAC-V Runtime 우선
+
+B1-1 CLEAR 완료 후 Docker 학습이 필요한가?
+├─ YES: Optional Docker Lab
+└─ NO: SKIP / 후속 Docker Track
+```
+
+## ③ Docker에서 연습할 수 있는 것
 
 - process 확인
 - TCP listen 확인
@@ -134,24 +148,20 @@ Docker에서는 다음 **애플리케이션/관찰 부분만** 연습합니다.
 - warning/failure 로직
 - log rotation 로직
 
-## ③ 실행 환경
+## ④ 실행 환경
 
 - `MAC-D`: macOS → OrbStack Docker
 - `WIN-D`: Windows 11 Pro → WSL2 Ubuntu 24.04 → Docker
 
-## ④ 기본 Container 확인
-
-예시 실습용 Ubuntu 24.04 container를 사용할 수 있습니다.
+예시:
 
 ```bash
 docker run --rm -it ubuntu:24.04 bash
 ```
 
-필요한 package는 실습 범위에 맞게 container 내부에서만 설치합니다. 실제 Mission repository의 Secret을 image에 포함하지 않습니다.
+필요 package는 container 내부에서만 설치하고 실제 Mission Secret을 image에 포함하지 않습니다.
 
-## ⑤ Docker에서 하지 않는 최종 판정
-
-다음은 Docker Lab 결과만으로 PASS/CLEAR하지 않습니다.
+## ⑤ Docker에서 최종 판정하지 않는 항목
 
 ```text
 Host/Guest SSH migration
@@ -161,44 +171,28 @@ UFW strict inbound policy
 OrbStack/WSL2 Linux Machine의 최종 network state
 ```
 
-## ⑥ Portability 확인
+## ⑥ 완료 기록
 
-Docker Lab은 아래 정도로 짧게 끝냅니다.
-
-```text
-Container 기동
-→ monitor 핵심 로직 실행
-→ process/port/log 확인
-→ failure 1회 확인
-→ container 제거
-```
-
-## ⑦ 완료 기록
-
-Mission 상태와 별도로 기록합니다.
+Mission 상태와 환경 학습 상태를 분리합니다.
 
 ```text
-B1-1 Mission CLEAR    [ ]
-MAC-V Primary         [ ]
-WIN-V Twin            [ ]
-MAC-D Docker Lab      [ ]
-WIN-D Docker Lab      [ ]
+B1-1 Mission CLEAR        [ ]
+MAC-V Primary             [ ]
+WIN-V Secondary Check     [ ]
+MAC-D Docker Lab          [ ] optional
+WIN-D Docker Lab          [ ] optional
 ```
 
-Docker/Win Twin이 미완료라는 이유만으로 공식 B1-1 CLEAR를 BLOCKED 처리하지 않습니다.
-
-## 운영 순서
-
-FAST TRACK에서는 다음 순서를 권장합니다.
+## FAST TRACK 운영 순서
 
 ```text
 MAC-V Primary Runtime
 → Verify / Evidence
 → ✅ B1-1 CLEAR
-→ 다음 필수 Mission
+→ B1-2
 
-Docker/Windows Twin
-→ 별도 Portability Coverage로 필요한 범위만 수행
+WIN-V / Docker Labs
+→ 필요한 경우 별도 Portability/Training 시간에 수행
 ```
 
-이렇게 하여 Docker/VM 학습을 추가하면서도 FAST TRACK의 CLEAR 속도를 유지합니다.
+Docker를 하지 않았다는 이유로 B1-1 FAST TRACK을 지연시키지 않습니다.
