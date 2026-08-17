@@ -1,0 +1,11 @@
+# B1-1 — Ubuntu 24.04 mission-specific APT packages
+# Base packages (ca-certificates, curl, git) are managed by the Control Tower.
+openssh-server
+ufw
+acl
+cron
+unzip
+file
+procps
+iproute2
+util-linux
