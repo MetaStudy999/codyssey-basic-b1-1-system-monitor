@@ -22,6 +22,38 @@ macOS Host
 
 상세 규칙: `ORBSTACK-UBUNTU-24.04.md`
 
+## Ubuntu 24.04 Package
+
+B1-1에서 Base 외에 추가로 필요한 Ubuntu APT 패키지는 `ubuntu-packages.txt`에서 관리합니다.
+
+현재 목록:
+
+```text
+openssh-server
+ufw
+acl
+cron
+unzip
+file
+procps
+iproute2
+util-linux
+```
+
+공통 Base(`ca-certificates`, `curl`, `git`)는 Control Tower의 `environments/ubuntu/`에서 관리합니다.
+
+운영 순서:
+
+```text
+Ubuntu Base 확인
+→ B1-1 ubuntu-packages.txt 확인
+→ 누락 패키지만 설치
+→ 실제 command/service 확인
+→ B1-1 Runtime
+```
+
+패키지가 이미 설치되어 있으면 재설치 자체를 목표로 하지 않습니다. 설치 여부와 실제 기능 동작을 구분합니다.
+
 ## VS Code Remote Workspace
 
 macOS에서 VS Code를 실행하더라도 실제 B1-1 Repository와 Terminal은 Ubuntu 내부를 사용합니다.
@@ -95,6 +127,7 @@ Repository Root의 `.vscode/settings.json`은 새 Terminal을 `${workspaceFolder
 
 - `ORBSTACK-UBUNTU-24.04.md` — 현재 macOS + OrbStack Ubuntu 24.04 Runtime 기준
 - `VS-CODE-REMOTE-UBUNTU.md` — VS Code Remote-SSH, Ubuntu Workspace, Bash Terminal 기준
+- `ubuntu-packages.txt` — B1-1 전용 Ubuntu APT 추가 패키지
 - `prerequisites.md` — 시작 조건과 필요한 도구
 - `versions.md` — 기준과 실제 검증 버전
 - `setup.sh` — 계정/그룹/디렉터리/monitor 설치 재현 보조
