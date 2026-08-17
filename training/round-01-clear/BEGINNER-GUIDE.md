@@ -2,21 +2,145 @@
 
 이 문서는 B1-1을 처음 수행하는 입문자가 공식 Mission/Evaluation을 기준으로 처음부터 끝까지 재현하기 위한 중심 가이드입니다.
 
-> 현재 훈련 차수는 **R01 — CLEAR**입니다. Phase A에서는 Reference Complete Version을 먼저 준비하고, 실제 Ubuntu/WSL 실행·검증·Evidence는 Phase C에서 수행합니다. 실제 실행하지 않은 항목은 PASS/CLEAR로 기록하지 않습니다.
+> 현재 훈련 차수는 **R01 — CLEAR**이며, Control Tower의 현재 운영 기준은 **Phase C — FAST EXECUTE / Runtime**입니다. Phase A/B의 Reference·설계 준비는 완료된 상태로 보고, 지금은 실제 Ubuntu Runtime → Verify → Evidence → CLEAR를 우선합니다. 실제 실행하지 않은 항목은 PASS/CLEAR로 기록하지 않습니다.
 
+---
+
+<a id="quick-start"></a>
+## 🚀 빠른 시작(Quick Start)
+
+> **공통 개발환경이 이미 준비되어 있고 B1-1 저장소를 받은 학습자**가 안전하게 현재 상태를 다시 확인하는 경로입니다.
+> 처음 개발환경을 준비하는 경우에는 Control Tower의 `environments/START-HERE-DEVELOPMENT-ENVIRONMENT.md`를 먼저 완료한 뒤 돌아오세요.
+
+### 📍 실행 위치
+
+```text
+Host       : MAC-V OrbStack Ubuntu 24.04 또는 WIN-V WSL2 Ubuntu 24.04
+Terminal   : Ubuntu Bash
+Repository : $HOME/codyssey/codyssey-basic-b1-1-system-monitor
+권한       : 일반 사용자
+venv       : 해당 없음
+```
+
+### 빠른 상태 확인
+
+```bash
+cd "$HOME/codyssey/codyssey-basic-b1-1-system-monitor"
+pwd
+git branch --show-current
+git status --short
+cat /etc/os-release
+uname -m
+ps -p 1 -o comm=
+bash -n training/round-01-clear/monitor.sh
+```
+
+### 줄별 의미
+
+```text
+1. cd ...
+   → B1-1 Repository Root로 이동합니다.
+
+2. pwd
+   → 실제 작업 위치가 Ubuntu의 B1-1 Repository인지 확인합니다.
+
+3. git branch --show-current
+   → 현재 작업 Branch를 확인합니다.
+
+4. git status --short
+   → 예상하지 않은 로컬 변경이 있는지 확인합니다.
+
+5. cat /etc/os-release
+   → Ubuntu 배포판과 버전을 확인합니다.
+
+6. uname -m
+   → 제공 Agent 실행 파일 선택에 필요한 CPU Architecture를 확인합니다.
+
+7. ps -p 1 -o comm=
+   → PID 1을 확인하여 systemd 기반 Runtime인지 판단합니다.
+
+8. bash -n .../monitor.sh
+   → monitor.sh를 실행하지 않고 Bash 문법만 검사합니다.
+```
+
+### Quick Start 정상 기준
+
+```text
+[ ] pwd가 /home/<user>/codyssey/codyssey-basic-b1-1-system-monitor 계열이다.
+[ ] 현재 Branch와 변경사항을 이해하고 있다.
+[ ] Ubuntu 24.04 Runtime이다.
+[ ] CPU Architecture를 확인했다.
+[ ] PID 1이 systemd이다.
+[ ] monitor.sh 문법 검사에 오류가 없다.
+```
+
+```text
+✅ GO
+→ 모두 만족하면 STEP 01부터 현재 실제 Runtime 상태를 확인합니다.
+
+❌ STOP
+→ 하나라도 다르면 SSH/UFW 설정을 시작하지 않습니다.
+→ 개발환경·Repository 위치·Branch·Runtime부터 먼저 바로잡습니다.
+```
+
+재실행 안전성:
+
+```text
+cd / pwd / branch / git status / OS·Architecture·systemd 확인 → 🟢 SAFE TO RERUN
+bash -n monitor.sh                                      → 🟢 SAFE TO RERUN
+```
+
+> Quick Start에서는 SSH, UFW, 사용자, ACL, Agent, cron 설정을 자동 변경하지 않습니다. 시스템 변경은 반드시 해당 상세 STEP의 Checkpoint와 STOP/GO 기준을 따라 수행합니다.
+
+---
+
+<a id="toc"></a>
+## 📑 목차(Table of Contents)
+
+- [🚀 빠른 시작(Quick Start)](#quick-start)
+- [00. 미션 한눈에 보기](#overview)
+- [01. Source of Truth](#source-of-truth)
+- [02. 최종적으로 만들어야 하는 것](#final-deliverables)
+- [03. R01 Runtime Path](#runtime-path)
+- [STEP 01 — 현재 실행 환경 Baseline 확인](#step-01)
+- [STEP 02 — Golden Path와 필수 도구 준비](#step-02)
+- [STEP 03 — SSH를 20022로 안전하게 전환](#step-03)
+- [STEP 04 — UFW 최종 정책](#step-04)
+- [STEP 05 — 사용자·그룹·디렉터리·ACL 구성](#step-05)
+- [STEP 06 — Agent archive·환경변수·Secret 준비](#step-06)
+- [STEP 07 — Agent Boot 5/5와 15034 LISTEN](#step-07)
+- [STEP 08 — monitor.sh 설치와 정상 실행](#step-08)
+- [STEP 09 — monitor.log와 10MB/10개 로그 회전](#step-09)
+- [STEP 10 — agent-admin cron 매분 자동 실행](#step-10)
+- [STEP 11 — 실패 경로와 Warning 경로 검증](#step-11)
+- [STEP 12 — 통합 verify.sh 실행](#step-12)
+- [STEP 13 — Evidence 정리](#step-13)
+- [STEP 14 — Evaluation Q&A 학습](#step-14)
+- [STEP 15 — B1-1 CLEAR Gate](#step-15)
+- [Reference 보조 파일](#reference-files)
+- [Secret 원칙](#secret-policy)
+
+---
+
+<a id="overview"></a>
 ## 00. 미션 한눈에 보기
 
 - 미션: **B1-1 — 컴퓨터가 알아서 자기 상태를 점검하게 만들기**
 - 구분: **필수 미션 (REQUIRED)**
 - 분야: **Linux와 OS**
 - Runtime 상태: **🟡 ACTIVE**
-- 현재 운영 모드: **Phase A — REFERENCE BUILD**
-- R01 Golden Path: **Ubuntu 22.04 LTS 또는 동등 Linux + systemd + UFW + Bash**
+- 현재 운영 모드: **Phase C — FAST EXECUTE / Runtime**
+- Primary R01 Golden Path: **MAC-V — macOS → OrbStack → Ubuntu 24.04 + systemd + UFW + Bash**
+- Secondary Check: **WIN-V — Windows 11 Pro → WSL2 → Ubuntu 24.04**
+- Docker: **선택 Lab**이며 B1-1 CLEAR의 기본 선행조건이 아님
 - 기준 `AGENT_HOME`: **`/opt/agent-app`**
 - 목표: Linux 운영 환경을 안전하게 구성하고 Bash `monitor.sh`로 시스템 상태를 점검·기록·자동 실행한 뒤 공식 평가항목을 Evidence로 증명합니다.
 
 공식 Mission은 `$AGENT_HOME`의 예시 경로를 제시하지만 고정 경로로 요구하지 않습니다. R01은 공유 디렉터리의 상위 경로 권한 문제를 줄이고 `agent-common`/`agent-core` 최소 권한을 명확히 검증하기 위해 `/opt/agent-app`을 기준으로 사용합니다.
 
+현재 운영 상태가 달라질 수 있으므로 Phase/Active/CLEAR 같은 진행 상태는 Control Tower `training/round-01-clear/NEXT-ACTIONS.md`를 최종 운영 기준으로 확인합니다.
+
+<a id="source-of-truth"></a>
 ## 01. Source of Truth
 
 1. `b1-1-mission.pdf`
@@ -27,6 +151,7 @@
 
 공식 원본은 수정하지 않습니다.
 
+<a id="final-deliverables"></a>
 ## 02. 최종적으로 만들어야 하는 것
 
 1. SSH `20022`, Root 원격 로그인 차단
@@ -43,12 +168,13 @@
 12. `agent-admin` cron 매분 실행
 13. Requirement → Implementation → Verification → Evidence 연결
 
-## 03. Reference Complete Path
+<a id="runtime-path"></a>
+## 03. R01 Runtime Path
 
 ```text
 SOURCE
   ↓
-Baseline
+Baseline / Preflight
   ↓
 Golden Path / Prerequisites
   ↓
@@ -79,6 +205,7 @@ Evidence + Evaluation Q&A
 
 ---
 
+<a id="step-01"></a>
 # STEP 01 — 현재 실행 환경 Baseline 확인
 
 ## ① 왜 하는가
@@ -146,9 +273,11 @@ git remote -v
 - `ss -lntp`: TCP LISTEN 상태를 확인합니다.
 - `git status --short`: 예상하지 못한 로컬 변경을 찾습니다.
 
+> 이 STEP의 명령은 상태 확인이 중심입니다. 결과가 예상과 다르면 다음 시스템 변경 STEP으로 진행하지 않습니다.
+
 ## ⑦ 예상되는 정상 결과
 
-Ubuntu 22.04/24.04 또는 동등 Linux, `x86_64` 또는 `aarch64`, systemd 사용 여부와 현재 SSH/UFW/계정 상태가 출력됩니다.
+Primary는 Ubuntu 24.04 + systemd이며, CPU는 환경에 따라 `x86_64` 또는 `aarch64`가 나올 수 있습니다. Secondary WIN-V도 Ubuntu 24.04를 기준으로 합니다. 현재 SSH/UFW/계정 상태는 기존 환경에 따라 달라도 정상이며, 그 상태를 기록하는 것이 목적입니다.
 
 ## ⑧ 그 결과가 의미하는 것
 
@@ -163,6 +292,7 @@ Ubuntu 22.04/24.04 또는 동등 Linux, `x86_64` 또는 `aarch64`, systemd 사�
 
 ## ⑩ 완료 확인
 
+- [ ] Ubuntu 24.04 확인
 - [ ] OS/Architecture 확인
 - [ ] systemd 확인
 - [ ] SSH/포트/UFW 확인
@@ -171,6 +301,7 @@ Ubuntu 22.04/24.04 또는 동등 Linux, `x86_64` 또는 `aarch64`, systemd 사�
 
 ---
 
+<a id="step-02"></a>
 # STEP 02 — Golden Path와 필수 도구 준비
 
 ## ① 왜 하는가
@@ -179,7 +310,7 @@ Ubuntu 22.04/24.04 또는 동등 Linux, `x86_64` 또는 `aarch64`, systemd 사�
 
 ## ② 무엇을 하는가
 
-필요한 명령이 있는지 확인하고 없는 패키지만 설치합니다.
+필요한 명령이 있는지 확인하고 없는 Mission 패키지만 설치합니다. `unzip`, `file` 같은 공통 기본도구는 Control Tower Ubuntu Bootstrap에서 관리합니다.
 
 ## ③ 이번 단계에서 알아야 할 용어
 
@@ -201,16 +332,29 @@ for c in bash ssh sshd ss ps pgrep df stat getfacl setfacl crontab unzip file ru
 done
 ```
 
-누락 도구가 있을 때만:
+Mission 전용 패키지가 누락되었을 때만:
 
 ```bash
 sudo apt update
-sudo apt install -y openssh-server ufw acl cron unzip file procps iproute2 util-linux
+sudo apt install -y openssh-server ufw acl cron procps iproute2 util-linux
+```
+
+`unzip`, `file`, `git` 같은 공통 기본도구가 누락되었다면 Mission 패키지 목록에 섞기보다 Control Tower에서 다음 공통 Bootstrap을 다시 확인합니다.
+
+```bash
+cd "$HOME/codyssey/codyssey-basic"
+bash environments/ubuntu/bootstrap.sh --check
 ```
 
 ## ⑥ 명령어와 코드에 입문자가 이해할 수 있는 주석
 
 먼저 `command -v`로 확인하고 필요한 경우에만 설치합니다. 불필요한 시스템 변경을 줄이기 위한 순서입니다.
+
+- `openssh-server`: B1-1 SSH 서버 설정에 필요합니다.
+- `ufw`: Firewall 정책에 필요합니다.
+- `acl`: `getfacl`, `setfacl`에 필요합니다.
+- `cron`: 매분 자동 실행에 필요합니다.
+- `procps`, `iproute2`, `util-linux`: 프로세스·포트·사용자 실행 상태 점검에 필요한 명령을 제공합니다.
 
 ## ⑦ 예상되는 정상 결과
 
@@ -224,14 +368,17 @@ SSH, ACL, 프로세스/포트 확인, 압축 해제, cron 실습을 할 최소 �
 
 - `apt` lock → 다른 패키지 작업이 끝났는지 확인합니다.
 - DNS/네트워크 오류 → 패키지 설치보다 네트워크부터 해결합니다.
+- 공통 기본도구가 누락됨 → Mission 패키지를 계속 추가하지 말고 Control Tower Bootstrap을 먼저 복구합니다.
 
 ## ⑩ 완료 확인
 
 - [ ] 필수 명령 존재
-- [ ] 실제 버전을 `environment/versions.md`에 Phase C에서 기록할 준비 완료
+- [ ] 공통 기본도구와 Mission 전용 패키지 역할을 구분함
+- [ ] 실제 버전을 `environment/versions.md`에 Runtime 실행 시 기록할 준비 완료
 
 ---
 
+<a id="step-03"></a>
 # STEP 03 — SSH를 20022로 안전하게 전환
 
 ## ① 왜 하는가
@@ -307,6 +454,8 @@ ssh -p 20022 <사용자>@<서버주소>
 - `sshd -T`: 실제 적용될 값을 확인합니다.
 - `reload`: 문법/effective 확인 후에만 수행합니다.
 
+이 STEP은 **🟡 CHECK BEFORE RERUN**입니다. 백업 파일과 현재 SSH/UFW 상태를 확인한 뒤 반복합니다.
+
 ## ⑦ 예상되는 정상 결과
 
 `sshd -t` 오류가 없고, effective config가 `port 20022`, `permitrootlogin no`, `ss`가 20022 LISTEN을 보여 주며 새 SSH 세션이 성공합니다.
@@ -332,6 +481,7 @@ SSH 보안 요구사항이 설정 파일뿐 아니라 실제 서비스에 적용
 
 ---
 
+<a id="step-04"></a>
 # STEP 04 — UFW를 20022/15034만 허용하도록 최종 정리
 
 ## ① 왜 하는가
@@ -377,6 +527,8 @@ sudo ufw status verbose
 
 규칙 번호는 삭제할 때마다 바뀔 수 있으므로 매번 `ufw status numbered`를 다시 확인합니다.
 
+이 STEP은 **🔴 DO NOT RERUN BLINDLY**입니다. 특히 `ufw delete`는 현재 번호를 다시 확인한 뒤 실행합니다.
+
 ## ⑦ 예상되는 정상 결과
 
 UFW `Status: active`, `Default: deny (incoming)`이며 ALLOW IN은 20022/tcp와 15034/tcp뿐입니다. IPv6 대응 동일 규칙은 같은 두 포트의 정상 복제입니다.
@@ -400,6 +552,7 @@ UFW `Status: active`, `Default: deny (incoming)`이며 ALLOW IN은 20022/tcp와 
 
 ---
 
+<a id="step-05"></a>
 # STEP 05 — 사용자·그룹·디렉터리·ACL 구성
 
 ## ① 왜 하는가
@@ -508,6 +661,7 @@ admin/dev는 common+core, test는 common이지만 core에는 없고, 세 사용�
 
 ---
 
+<a id="step-06"></a>
 # STEP 06 — 제공 Agent archive·환경변수·Secret 준비
 
 ## ① 왜 하는가
@@ -542,6 +696,8 @@ mkdir -p /tmp/b1-1-agent-inspect
 unzip -q agent-app.zip -d /tmp/b1-1-agent-inspect
 find /tmp/b1-1-agent-inspect -maxdepth 3 -type f -exec file {} \;
 ```
+
+> `rm -rf`는 **정확히 `/tmp/b1-1-agent-inspect` 임시 검사 폴더에만** 사용합니다. 경로가 다르면 실행하지 않습니다. 이 줄은 🔴 DO NOT RERUN BLINDLY로 보고 경로를 먼저 확인합니다.
 
 CPU와 맞는 제공 실행 파일을 확인한 뒤 `<선택파일>`만 실제 경로로 바꿉니다.
 
@@ -616,6 +772,7 @@ Agent Boot Sequence가 검사할 실행 환경이 준비된 것입니다.
 
 ---
 
+<a id="step-07"></a>
 # STEP 07 — Agent Boot 5/5와 15034 LISTEN 검증
 
 ## ① 왜 하는가
@@ -688,6 +845,7 @@ Boot 5단계가 `[OK]`, 마지막에 `Agent READY`, 프로세스 사용자가 ro
 
 ---
 
+<a id="step-08"></a>
 # STEP 08 — monitor.sh 설치와 정상 실행
 
 ## ① 왜 하는가
@@ -763,6 +921,7 @@ Process/TCP `[OK]`, CPU/MEM/DISK 값, 필요 시 Warning, log append `[OK]`, `ex
 
 ---
 
+<a id="step-09"></a>
 # STEP 09 — monitor.log와 10MB/10개 로그 회전 검증
 
 ## ① 왜 하는가
@@ -811,6 +970,8 @@ sudo ls -lh /tmp/b1-1-log-test
 sudo find /tmp/b1-1-log-test -maxdepth 1 -type f -name 'monitor.log*' | wc -l
 ```
 
+> `sudo rm -rf /tmp/b1-1-log-test`는 정확한 격리 테스트 폴더만 지웁니다. 경로가 다르면 실행하지 않습니다. 이 줄은 🔴 DO NOT RERUN BLINDLY입니다.
+
 ## ⑥ 명령어와 코드에 입문자가 이해할 수 있는 주석
 
 `truncate -s 10485760`은 실제 데이터를 10MB 쓰지 않고 파일 크기를 빠르게 만들어 테스트합니다. 운영 로그 대신 `/tmp`에서 시험합니다.
@@ -837,6 +998,7 @@ sudo find /tmp/b1-1-log-test -maxdepth 1 -type f -name 'monitor.log*' | wc -l
 
 ---
 
+<a id="step-10"></a>
 # STEP 10 — agent-admin cron 매분 자동 실행
 
 ## ① 왜 하는가
@@ -922,6 +1084,7 @@ sudo crontab -u agent-admin -l
 
 ---
 
+<a id="step-11"></a>
 # STEP 11 — 실패 경로와 Warning 경로 검증
 
 ## ① 왜 하는가
@@ -1010,6 +1173,7 @@ echo "exit=$?"
 
 ---
 
+<a id="step-12"></a>
 # STEP 12 — 통합 verify.sh 실행
 
 ## ① 왜 하는가
@@ -1062,6 +1226,7 @@ FAIL 한 항목의 원래 Step으로 돌아가 해당 원인만 수정합니다.
 
 ---
 
+<a id="step-13"></a>
 # STEP 13 — Evidence 정리
 
 ## ① 왜 하는가
@@ -1127,6 +1292,7 @@ Evidence에는 예상 결과가 아니라 실제 Runtime 결과만 넣습니다.
 
 ---
 
+<a id="step-14"></a>
 # STEP 14 — Evaluation Q&A 학습
 
 ## ① 왜 하는가
@@ -1177,6 +1343,7 @@ sed -n '1,260p' training/round-01-clear/docs/evaluation-qa.md
 
 ---
 
+<a id="step-15"></a>
 # STEP 15 — B1-1 CLEAR Gate
 
 ## ① 왜 하는가
@@ -1245,6 +1412,7 @@ git ls-files | grep -E '(^|/)(\.env($|\.)|.*\.(key|pem)$|secrets/)' || true
 
 ---
 
+<a id="reference-files"></a>
 ## Reference 보조 파일
 
 - `REFERENCE-BUILD.md` — Reference 준비 현황
@@ -1260,6 +1428,7 @@ git ls-files | grep -E '(^|/)(\.env($|\.)|.*\.(key|pem)$|secrets/)' || true
 - `docs/evaluation-qa.md` — 평가 설명 기준
 - `evidence/README.md` — 실제 Evidence 계획
 
+<a id="secret-policy"></a>
 ## Secret 원칙
 
 실제 `.env`, `*.key`, Password, API Key, Access Token, Private Key는 GitHub·채팅·로그·Evidence에 저장하지 않습니다. 특히 `t_secret.key`는 **값을 보여 주지 않고 존재·소유권·권한만 검증**합니다.
