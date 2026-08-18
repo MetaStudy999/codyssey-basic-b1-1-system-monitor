@@ -146,7 +146,7 @@
 - [ ] root 아닌 계정 실행
 - [ ] Boot Sequence 5단계 `[OK]`
 - [ ] `Agent READY`
-- [ ] `0.0.0.0:15034` 또는 동등한 all-interface LISTEN
+- [ ] `0.0.0.0:15034` 실제 LISTEN (`[::]:15034` 또는 임의의 `:15034`만으로 PASS 처리하지 않음)
 
 ### C5. monitor / log / cron
 
