@@ -1,0 +1,48 @@
+name: One-shot dispatcher B1-1 guide modularization
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Execute embedded modularization patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          workflow = Path('.github/workflows/_oneshot-b1-1-guide-modularize.yml').read_text(encoding='utf-8')
+          start_marker = "          python3 - <<'PY'\n"
+          end_marker = "\n          PY\n"
+          start = workflow.index(start_marker) + len(start_marker)
+          end = workflow.index(end_marker, start)
+          script = workflow[start:end]
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in script.splitlines())
+          subprocess.run(['python3', '-c', script], check=True)
+          PY
+
+          grep -q '학습 모듈 지도(Module Map)' training/round-01-clear/BEGINNER-GUIDE.md
+          for f in training/round-01-clear/guide/*.md; do
+            grep -q '입문자 가이드 허브' "$f"
+            grep -q '다음 이동' "$f"
+          done
+          test "$(grep -Rho '<a id="step-[0-9][0-9]"></a>' training/round-01-clear/guide | sort -u | wc -l)" -eq 15
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add training/round-01-clear/BEGINNER-GUIDE.md training/round-01-clear/guide
+          git rm .github/workflows/_oneshot-b1-1-guide-modularize.yml
+          git rm .github/workflows/_oneshot-dispatch-b1-1-guide-modularize.yml
+          git rm -f .github/_run-b1-1-guide-modularize 2>/dev/null || true
+          git commit -m 'docs: modularize B1-1 beginner guide into focused learning units'
+          git push origin HEAD:main
