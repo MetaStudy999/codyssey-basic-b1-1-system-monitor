@@ -12,6 +12,28 @@
 > **공통 개발환경이 이미 준비되어 있고 B1-1 저장소를 받은 학습자**가 안전하게 현재 상태를 다시 확인하는 경로입니다.
 > 처음 개발환경을 준비하는 경우에는 Control Tower의 `environments/START-HERE-DEVELOPMENT-ENVIRONMENT.md`를 먼저 완료한 뒤 돌아오세요.
 
+### B1-1 진입 전 공통 환경 판정(Gate)
+
+Quick Start를 실행하기 전에 Control Tower에서 다음 순서를 먼저 닫습니다.
+
+```text
+1. Git/GitHub 사용자 준비 상태(User Identity Readiness) 재확인
+2. 공통 환경 마무리(Common Environment Closeout) 판정
+3. 공통 환경 동결(Common Environment Freeze) 확인
+4. 그 다음 B1-1 Quick Start → STEP 01
+```
+
+현재 운영 상태와 최종 판정은 Control Tower의 `training/round-01-clear/NEXT-ACTIONS.md`와 `environments/ubuntu/ENVIRONMENT-CLOSEOUT.md`를 기준으로 합니다.
+
+Ubuntu Bash의 Control Tower root에서 사용자 상태를 읽기 전용으로 재확인합니다.
+
+```bash
+cd "$HOME/codyssey/codyssey-basic"
+bash environments/ubuntu/verify-user-identity.sh
+```
+
+결과가 현재 Git/GitHub 작업에 필요한 수준으로 준비되었는지 확인한 뒤 `ENVIRONMENT-CLOSEOUT.md`의 Gate 1~4와 동결(Freeze) 조건을 확인합니다. **공통 환경 동결이 아직 확인되지 않았다면 SSH/UFW 변경을 시작하지 않고 STOP합니다.**
+
 ### 📍 실행 위치
 
 ```text
@@ -66,6 +88,7 @@ bash -n training/round-01-clear/monitor.sh
 ### Quick Start 정상 기준
 
 ```text
+[ ] Control Tower에서 공통 환경 동결(Common Environment Freeze)이 확인되었다.
 [ ] pwd가 /home/<user>/codyssey/codyssey-basic-b1-1-system-monitor 계열이다.
 [ ] 현재 Branch와 변경사항을 이해하고 있다.
 [ ] Ubuntu 24.04 Runtime이다.
@@ -76,11 +99,11 @@ bash -n training/round-01-clear/monitor.sh
 
 ```text
 ✅ GO
-→ 모두 만족하면 STEP 01부터 현재 실제 Runtime 상태를 확인합니다.
+→ 공통 환경 동결이 확인되고 위 항목을 모두 만족하면 STEP 01부터 현재 실제 Runtime 상태를 확인합니다.
 
 ❌ STOP
-→ 하나라도 다르면 SSH/UFW 설정을 시작하지 않습니다.
-→ 개발환경·Repository 위치·Branch·Runtime부터 먼저 바로잡습니다.
+→ 공통 환경 마무리/동결이 미완료이거나 위 항목 중 하나라도 다르면 SSH/UFW 설정을 시작하지 않습니다.
+→ Control Tower 환경 Gate 또는 개발환경·Repository 위치·Branch·Runtime부터 먼저 바로잡습니다.
 ```
 
 재실행 안전성:
