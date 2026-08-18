@@ -1,7 +1,7 @@
-# B1-1 모듈 07 — 최종 완료 판정
+# B1-1 모듈 08 — 최종 완료 판정
 
 > 범위: **STEP 15 + Reference/Secret 원칙**  
-> [← 모듈 06](06-VERIFICATION-AND-EVIDENCE.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 입문자 가이드 허브 →](../BEGINNER-GUIDE.md)
+> [← 모듈 07](07-VERIFICATION-AND-EVIDENCE.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 입문자 가이드 허브 →](../BEGINNER-GUIDE.md)
 
 ## 📑 이 모듈 목차
 
@@ -637,4 +637,4 @@ STEP 15를 실제 Runtime/Evidence로 통과
 
 ## 다음 이동
 
-[← 모듈 06](06-VERIFICATION-AND-EVIDENCE.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 입문자 가이드 허브 →](../BEGINNER-GUIDE.md)
+[← 모듈 07](07-VERIFICATION-AND-EVIDENCE.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 입문자 가이드 허브 →](../BEGINNER-GUIDE.md)

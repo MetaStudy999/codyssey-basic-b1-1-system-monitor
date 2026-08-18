@@ -1,7 +1,7 @@
-# B1-1 모듈 06 — 검증·증빙·평가 설명
+# B1-1 모듈 07 — 검증·증빙·평가 설명
 
 > 범위: **STEP 12~14**  
-> [← 모듈 05](05-MONITOR-AND-CRON.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 모듈 07 →](07-FINAL-CLEAR.md)
+> [← 모듈 06](06-CRON-FAILURE-WARNING.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 모듈 08 →](08-FINAL-CLEAR.md)
 
 ## 📑 이 모듈 목차
 
@@ -1763,4 +1763,4 @@ Mission CLEAR
 
 ## 다음 이동
 
-[← 모듈 05](05-MONITOR-AND-CRON.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 모듈 07 →](07-FINAL-CLEAR.md)
+[← 모듈 06](06-CRON-FAILURE-WARNING.md) · [입문자 가이드 허브](../BEGINNER-GUIDE.md) · [다음: 모듈 08 →](08-FINAL-CLEAR.md)

@@ -134,9 +134,10 @@ B1-1의 상세 따라하기는 한 파일에 누적하지 않고 **기술 흐름
 → 02 SSH/UFW
 → 03 사용자/그룹/ACL
 → 04 Agent Runtime
-→ 05 Monitor/Cron
-→ 06 Verification/Evidence
-→ 07 Final CLEAR
+→ 05 Monitor/Log Rotation
+→ 06 cron/Failure/Warning
+→ 07 Verification/Evidence
+→ 08 Final CLEAR
 ```
 
 | 모듈 | 범위 | 바로가기 | 현재 상태 |
@@ -146,13 +147,14 @@ B1-1의 상세 따라하기는 한 파일에 누적하지 않고 **기술 흐름
 | 02 | STEP 03~04 | [SSH와 방화벽](guide/02-SSH-AND-FIREWALL.md) | ⬜ 실제 실행 전/진행 중 |
 | 03 | STEP 05 | [사용자·그룹·접근 제어 목록](guide/03-USERS-GROUPS-ACL.md) | ⬜ 실제 실행 전/진행 중 |
 | 04 | STEP 06~07 | [Agent 준비와 실제 실행](guide/04-AGENT-RUNTIME.md) | ⬜ 실제 실행 전/진행 중 |
-| 05 | STEP 08~11 | [모니터링·로그·cron](guide/05-MONITOR-AND-CRON.md) | ⬜ 실제 실행 전/진행 중 |
-| 06 | STEP 12~14 | [검증·증빙·평가 설명](guide/06-VERIFICATION-AND-EVIDENCE.md) | ⬜ 실제 실행 전/진행 중 |
-| 07 | STEP 15 + Reference/Secret 원칙 | [최종 완료 판정](guide/07-FINAL-CLEAR.md) | ⬜ 실제 실행 전/진행 중 |
+| 05 | STEP 08~09 | [모니터링·로그 회전](guide/05-MONITOR-AND-LOG-ROTATION.md) | ⬜ 실제 실행 전/진행 중 |
+| 06 | STEP 10~11 | [cron 자동 실행·실패·경고 분기](guide/06-CRON-FAILURE-WARNING.md) | ⬜ 실제 실행 전/진행 중 |
+| 07 | STEP 12~14 | [검증·증빙·평가 설명](guide/07-VERIFICATION-AND-EVIDENCE.md) | ⬜ 실제 실행 전/진행 중 |
+| 08 | STEP 15 + Reference/Secret 원칙 | [최종 완료 판정](guide/08-FINAL-CLEAR.md) | ⬜ 실제 실행 전/진행 중 |
 
 ### 진행 원칙
 
-- 처음 수행하면 `00 → 01 → ... → 07` 순서로 진행합니다.
+- 처음 수행하면 `00 → 01 → ... → 08` 순서로 진행합니다.
 - 이미 완료한 단계가 있어도 실제 상태를 확인하지 않고 체크하지 않습니다.
 - 실패하면 다음 모듈로 넘어가지 않고 해당 STEP의 STOP/복구(Recovery) 기준을 따릅니다.
 - `CHECKLIST.md`는 최종 완료 여부를 관리하고, 실제 증빙은 `evidence/`에 저장합니다.
