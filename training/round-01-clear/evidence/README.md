@@ -15,8 +15,12 @@ Evidence는 단순 스크린샷 모음이 아니라 공식 평가항목을 증�
    - `PermitRootLogin no`
    - 20022 LISTEN
 2. `02-firewall.txt`
+   - `ufw status verbose`의 전체 정책 출력
    - Firewall active
-   - 20022/tcp, 15034/tcp 허용
+   - default deny incoming
+   - 20022/tcp, 15034/tcp ALLOW IN
+   - 그 외 불필요한 ALLOW IN 없음
+   - 필요한 두 포트만 잘라낸 출력이 아니라 전체 정책을 증빙하여 추가 허용 규칙이 없음을 함께 확인
 3. `03-users-groups.txt`
    - agent-admin/dev/test
    - agent-common/core membership
