@@ -1,0 +1,66 @@
+name: One-shot B1-1 STEP14 patch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/_oneshot-b1-1-step14.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-step14:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch BEGINNER-GUIDE STEP14 only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          guide = Path("training/round-01-clear/BEGINNER-GUIDE.md")
+          source = Path(".github/step14-content.md")
+          text = guide.read_text(encoding="utf-8")
+          step14 = source.read_text(encoding="utf-8").rstrip()
+
+          start_marker = '<a id="step-14"></a>'
+          end_marker = '<a id="step-15"></a>'
+
+          if text.count(start_marker) != 1:
+              raise SystemExit("STEP14 marker count is not exactly one")
+          if text.count(end_marker) != 1:
+              raise SystemExit("STEP15 marker count is not exactly one")
+
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
+          new_text = text[:start] + step14 + "\n\n---\n\n" + text[end:]
+
+          if new_text.count(start_marker) != 1 or new_text.count(end_marker) != 1:
+              raise SystemExit("marker validation failed after replacement")
+
+          with guide.open("w", encoding="utf-8", newline="\n") as f:
+              f.write(new_text)
+          PY
+
+          git diff --check
+          test "$(git diff --name-only)" = "training/round-01-clear/BEGINNER-GUIDE.md"
+
+      - name: Remove one-shot files and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/step14-content.md .github/workflows/_oneshot-b1-1-step14.yml
+          git add training/round-01-clear/BEGINNER-GUIDE.md
+          git diff --cached --check
+          git commit -m "docs: harden B1-1 STEP 14 evaluation Q&A rehearsal"
+          git push origin HEAD:main
