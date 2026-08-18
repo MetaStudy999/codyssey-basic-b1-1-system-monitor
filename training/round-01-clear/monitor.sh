@@ -37,6 +37,36 @@ is_over() {
     awk -v value="$1" -v limit="$2" 'BEGIN { exit !(value > limit) }'
 }
 
+firewall_is_active() {
+    # monitor.sh normally runs as agent-admin from cron. Do not require
+    # passwordless sudo merely to determine whether the firewall is active.
+    if command -v ufw >/dev/null 2>&1; then
+        # Use the canonical UFW status output when the current account can read it.
+        if ufw status 2>/dev/null | grep -q '^Status: active$'; then
+            return 0
+        fi
+
+        # On Ubuntu, non-root cron users may not be allowed to run `ufw status`.
+        # In that case, confirm both the persistent UFW enable flag and the
+        # systemd service state using read-only information available without sudo.
+        if [ -r /etc/ufw/ufw.conf ] \
+           && grep -Eq '^[[:space:]]*ENABLED=yes([[:space:]]|$)' /etc/ufw/ufw.conf 2>/dev/null \
+           && command -v systemctl >/dev/null 2>&1 \
+           && systemctl is-active --quiet ufw 2>/dev/null; then
+            return 0
+        fi
+
+        return 1
+    fi
+
+    if command -v firewall-cmd >/dev/null 2>&1; then
+        firewall-cmd --state 2>/dev/null | grep -q '^running$'
+        return $?
+    fi
+
+    return 1
+}
+
 rotate_log_if_needed() {
     [ -f "$MONITOR_LOG" ] || return 0
 
@@ -87,20 +117,7 @@ printf '[OK] TCP %s is LISTEN\n' "$AGENT_PORT"
 
 # 3) Firewall is a warning-only state check. The full firewall policy is
 # verified separately by environment/verify.sh.
-FIREWALL_ACTIVE=0
-if command -v ufw >/dev/null 2>&1; then
-    if ufw status 2>/dev/null | grep -q '^Status: active$'; then
-        FIREWALL_ACTIVE=1
-    elif command -v sudo >/dev/null 2>&1 && sudo -n ufw status 2>/dev/null | grep -q '^Status: active$'; then
-        FIREWALL_ACTIVE=1
-    fi
-elif command -v firewall-cmd >/dev/null 2>&1; then
-    if firewall-cmd --state 2>/dev/null | grep -q '^running$'; then
-        FIREWALL_ACTIVE=1
-    fi
-fi
-
-if [ "$FIREWALL_ACTIVE" -eq 1 ]; then
+if firewall_is_active; then
     printf '%s\n' '[OK] Firewall is active'
 else
     warn 'Firewall active state could not be confirmed'
