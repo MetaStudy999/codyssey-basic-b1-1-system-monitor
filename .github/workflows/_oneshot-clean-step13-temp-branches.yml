@@ -1,0 +1,46 @@
+name: One-shot cleanup STEP13 temp branches
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/_oneshot-clean-step13-temp-branches.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete temporary helper branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          for branch in \
+            tmp-step13-preflight \
+            tmp-step13-preflight2 \
+            tmp-step13-preflight3 \
+            tmp-step13-preflight4 \
+            tmp-step13-preflight5 \
+            tmp-step13-preflight6; do
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              git push origin --delete "$branch"
+            fi
+          done
+
+      - name: Remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/_oneshot-clean-step13-temp-branches.yml
+          git commit -m "chore: remove temporary STEP13 helper branches"
+          git push origin HEAD:main
