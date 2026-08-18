@@ -1,8 +1,8 @@
-# B1-1 Round 01 — Beginner Guide
+# B1-1 훈련 차수(Round) 01 — 입문자 가이드(Beginner Guide)
 
-이 문서는 B1-1을 처음 수행하는 입문자가 공식 Mission/Evaluation을 기준으로 처음부터 끝까지 재현하기 위한 중심 가이드입니다.
+이 문서는 B1-1을 처음 수행하는 입문자가 공식 미션(Mission)/평가(Evaluation)를 기준으로 처음부터 끝까지 재현하기 위한 중심 가이드입니다.
 
-> 현재 훈련 차수는 **R01 — CLEAR**이며, Control Tower의 현재 운영 기준은 **Phase C — FAST EXECUTE / Runtime**입니다. Phase A/B의 Reference·설계 준비는 완료된 상태로 보고, 지금은 실제 Ubuntu Runtime → Verify → Evidence → CLEAR를 우선합니다. 실제 실행하지 않은 항목은 PASS/CLEAR로 기록하지 않습니다.
+> 현재 훈련 차수는 **R01 — CLEAR**이며, Control Tower의 현재 운영 기준은 **Phase C — 빠른 실행 방식(FAST EXECUTE) / 실제 실행(Runtime)**입니다. Phase A/B의 기준 구현(Reference Build)·설계 준비는 완료된 상태로 보고, 지금은 Ubuntu 실제 실행(Runtime) → 검증(Verification) → 증빙 자료(Evidence) → 완료(CLEAR)를 우선합니다. 실제 실행하지 않은 항목은 PASS/CLEAR로 기록하지 않습니다.
 
 ---
 
@@ -14,13 +14,13 @@
 
 ### B1-1 진입 전 공통 환경 판정(Gate)
 
-Quick Start를 실행하기 전에 Control Tower에서 다음 순서를 먼저 닫습니다.
+빠른 시작(Quick Start)을 실행하기 전에 Control Tower에서 다음 순서를 먼저 닫습니다.
 
 ```text
 1. Git/GitHub 사용자 준비 상태(User Identity Readiness) 재확인
 2. 공통 환경 마무리(Common Environment Closeout) 판정
 3. 공통 환경 동결(Common Environment Freeze) 확인
-4. 그 다음 B1-1 Quick Start → STEP 01
+4. 그 다음 B1-1 빠른 시작(Quick Start) → STEP 01
 ```
 
 현재 운영 상태와 최종 판정은 Control Tower의 `training/round-01-clear/NEXT-ACTIONS.md`와 `environments/ubuntu/ENVIRONMENT-CLOSEOUT.md`를 기준으로 합니다.
@@ -61,13 +61,13 @@ bash -n training/round-01-clear/monitor.sh
 
 ```text
 1. cd ...
-   → B1-1 Repository Root로 이동합니다.
+   → B1-1 저장소 루트(Repository Root)로 이동합니다.
 
 2. pwd
    → 실제 작업 위치가 Ubuntu의 B1-1 Repository인지 확인합니다.
 
 3. git branch --show-current
-   → 현재 작업 Branch를 확인합니다.
+   → 현재 작업 브랜치(Branch)를 확인합니다.
 
 4. git status --short
    → 예상하지 않은 로컬 변경이 있는지 확인합니다.
@@ -76,34 +76,34 @@ bash -n training/round-01-clear/monitor.sh
    → Ubuntu 배포판과 버전을 확인합니다.
 
 6. uname -m
-   → 제공 Agent 실행 파일 선택에 필요한 CPU Architecture를 확인합니다.
+   → 제공 Agent 실행 파일 선택에 필요한 CPU 아키텍처(Architecture)를 확인합니다.
 
 7. ps -p 1 -o comm=
-   → PID 1을 확인하여 systemd 기반 Runtime인지 판단합니다.
+   → PID 1을 확인하여 systemd 기반 실행 환경(Runtime)인지 판단합니다.
 
 8. bash -n .../monitor.sh
    → monitor.sh를 실행하지 않고 Bash 문법만 검사합니다.
 ```
 
-### Quick Start 정상 기준
+### 빠른 시작(Quick Start) 정상 기준
 
 ```text
 [ ] Control Tower에서 공통 환경 동결(Common Environment Freeze)이 확인되었다.
 [ ] pwd가 /home/<user>/codyssey/codyssey-basic-b1-1-system-monitor 계열이다.
 [ ] 현재 Branch와 변경사항을 이해하고 있다.
-[ ] Ubuntu 24.04 Runtime이다.
-[ ] CPU Architecture를 확인했다.
+[ ] Ubuntu 24.04 실행 환경(Runtime)이다.
+[ ] CPU 아키텍처(Architecture)를 확인했다.
 [ ] PID 1이 systemd이다.
 [ ] monitor.sh 문법 검사에 오류가 없다.
 ```
 
 ```text
 ✅ GO
-→ 공통 환경 동결이 확인되고 위 항목을 모두 만족하면 STEP 01부터 현재 실제 Runtime 상태를 확인합니다.
+→ 공통 환경 동결이 확인되고 위 항목을 모두 만족하면 STEP 01부터 현재 실제 실행(Runtime) 상태를 확인합니다.
 
 ❌ STOP
 → 공통 환경 마무리/동결이 미완료이거나 위 항목 중 하나라도 다르면 SSH/UFW 설정을 시작하지 않습니다.
-→ Control Tower 환경 Gate 또는 개발환경·Repository 위치·Branch·Runtime부터 먼저 바로잡습니다.
+→ Control Tower 환경 판정(Gate) 또는 개발환경·저장소(Repository) 위치·브랜치(Branch)·실행 환경(Runtime)부터 먼저 바로잡습니다.
 ```
 
 재실행 안전성:
@@ -113,7 +113,7 @@ cd / pwd / branch / git status / OS·Architecture·systemd 확인 → 🟢 SAFE 
 bash -n monitor.sh                                      → 🟢 SAFE TO RERUN
 ```
 
-> Quick Start에서는 SSH, UFW, 사용자, ACL, Agent, cron 설정을 자동 변경하지 않습니다. 시스템 변경은 반드시 해당 상세 STEP의 Checkpoint와 STOP/GO 기준을 따라 수행합니다.
+> 빠른 시작(Quick Start)에서는 SSH, UFW, 사용자, ACL, Agent, cron 설정을 자동 변경하지 않습니다. 시스템 변경은 반드시 해당 상세 STEP의 Checkpoint와 STOP/GO 기준을 따라 수행합니다.
 
 ---
 
@@ -122,26 +122,26 @@ bash -n monitor.sh                                      → 🟢 SAFE TO RERUN
 
 - [🚀 빠른 시작(Quick Start)](#quick-start)
 - [00. 미션 한눈에 보기](#overview)
-- [01. Source of Truth](#source-of-truth)
+- [01. 공식 기준(Source of Truth)](#source-of-truth)
 - [02. 최종적으로 만들어야 하는 것](#final-deliverables)
-- [03. R01 Runtime Path](#runtime-path)
-- [STEP 01 — 현재 실행 환경 Baseline 확인](#step-01)
-- [STEP 02 — Golden Path와 필수 도구 준비](#step-02)
+- [03. R01 실제 실행 경로(Runtime Path)](#runtime-path)
+- [STEP 01 — 현재 실행 환경 기준 상태(Baseline) 확인](#step-01)
+- [STEP 02 — 표준 실행 경로(Golden Path)와 필수 도구 준비](#step-02)
 - [STEP 03 — SSH를 20022로 안전하게 전환](#step-03)
 - [STEP 04 — UFW 최종 정책](#step-04)
 - [STEP 05 — 사용자·그룹·디렉터리·ACL 구성](#step-05)
-- [STEP 06 — Agent archive·환경변수·Secret 준비](#step-06)
+- [STEP 06 — Agent 압축 파일(Archive)·환경 변수(Environment Variable)·비밀정보(Secret) 준비](#step-06)
 - [STEP 07 — Agent Boot 5/5와 15034 LISTEN](#step-07)
 - [STEP 08 — monitor.sh 설치와 정상 실행](#step-08)
 - [STEP 09 — monitor.log와 10MB/10개 로그 회전](#step-09)
 - [STEP 10 — agent-admin cron 매분 자동 실행](#step-10)
-- [STEP 11 — 실패 경로와 Warning 경로 검증](#step-11)
-- [STEP 12 — 통합 verify.sh 실행](#step-12)
-- [STEP 13 — Evidence 정리](#step-13)
-- [STEP 14 — Evaluation Q&A 학습](#step-14)
-- [STEP 15 — B1-1 CLEAR Gate](#step-15)
-- [Reference 보조 파일](#reference-files)
-- [Secret 원칙](#secret-policy)
+- [STEP 11 — 실패 경로와 경고(Warning) 경로 검증](#step-11)
+- [STEP 12 — 통합 `verify.sh` 검증(Verification)](#step-12)
+- [STEP 13 — 실제 증빙 자료(Evidence) 수집·검토·연결](#step-13)
+- [STEP 14 — 평가 질의응답(Evaluation Q&A) 학습·모의 설명](#step-14)
+- [STEP 15 — B1-1 최종 미션 완료(CLEAR) Gate](#step-15)
+- [기준 구현(Reference) 보조 파일](#reference-files)
+- [비밀정보(Secret) 원칙](#secret-policy)
 
 ---
 
@@ -151,26 +151,26 @@ bash -n monitor.sh                                      → 🟢 SAFE TO RERUN
 - 미션: **B1-1 — 컴퓨터가 알아서 자기 상태를 점검하게 만들기**
 - 구분: **필수 미션 (REQUIRED)**
 - 분야: **Linux와 OS**
-- Runtime 상태: **🟡 ACTIVE**
-- 현재 운영 모드: **Phase C — FAST EXECUTE / Runtime**
-- Primary R01 Golden Path: **MAC-V — macOS → OrbStack → Ubuntu 24.04 + systemd + UFW + Bash**
-- Secondary Check: **WIN-V — Windows 11 Pro → WSL2 Ubuntu 24.04**
-- Docker: **선택 Lab**이며 B1-1 CLEAR의 기본 선행조건이 아님
+- 실행 환경(Runtime) 상태: **🟡 ACTIVE**
+- 현재 운영 모드: **Phase C — 빠른 실행 방식(FAST EXECUTE) / 실제 실행(Runtime)**
+- R01 기본 표준 실행 경로(Primary Golden Path): **MAC-V — macOS → OrbStack → Ubuntu 24.04 + systemd + UFW + Bash**
+- 보조 확인(Secondary Check): **WIN-V — Windows 11 Pro → WSL2 Ubuntu 24.04**
+- Docker: **선택 실습(Lab)**이며 B1-1 완료(CLEAR)의 기본 선행조건이 아님
 - 기준 `AGENT_HOME`: **`/opt/agent-app`**
-- 목표: Linux 운영 환경을 안전하게 구성하고 Bash `monitor.sh`로 시스템 상태를 점검·기록·자동 실행한 뒤 공식 평가항목을 Evidence로 증명합니다.
+- 목표: Linux 운영 환경을 안전하게 구성하고 Bash `monitor.sh`로 시스템 상태를 점검·기록·자동 실행한 뒤 공식 평가항목을 증빙 자료(Evidence)로 증명합니다.
 
-공식 Mission은 `$AGENT_HOME`의 예시 경로를 제시하지만 고정 경로로 요구하지 않습니다. R01은 공유 디렉터리의 상위 경로 권한 문제를 줄이고 `agent-common`/`agent-core` 최소 권한을 명확히 검증하기 위해 `/opt/agent-app`을 기준으로 사용합니다.
+공식 미션(Mission)은 `$AGENT_HOME`의 예시 경로를 제시하지만 고정 경로로 요구하지 않습니다. R01은 공유 디렉터리의 상위 경로 권한 문제를 줄이고 `agent-common`/`agent-core` 최소 권한을 명확히 검증하기 위해 `/opt/agent-app`을 기준으로 사용합니다.
 
 현재 운영 상태가 달라질 수 있으므로 Phase/Active/CLEAR 같은 진행 상태는 Control Tower `training/round-01-clear/NEXT-ACTIONS.md`를 최종 운영 기준으로 확인합니다.
 
 <a id="source-of-truth"></a>
-## 01. Source of Truth
+## 01. 공식 기준(Source of Truth)
 
 1. `b1-1-mission.pdf`
 2. `b1-1-mission.md`
 3. `b1-1-evaluation.md`
 4. `agent-app.zip`
-5. 이번 Round의 실제 Runtime 결과와 Evidence
+5. 이번 훈련 차수(Round)의 실제 실행(Runtime) 결과와 증빙 자료(Evidence)
 
 공식 원본은 수정하지 않습니다.
 
@@ -182,17 +182,17 @@ bash -n monitor.sh                                      → 🟢 SAFE TO RERUN
 3. `agent-admin`, `agent-dev`, `agent-test`
 4. `agent-common`, `agent-core`
 5. `/opt/agent-app/upload_files`, `/opt/agent-app/api_keys`, `/var/log/agent-app` 권한/ACL
-6. 제공 Agent 앱의 Boot Sequence 5단계 `[OK]`, `Agent READY`, `0.0.0.0:15034` LISTEN
+6. 제공 Agent 앱의 부팅 순서(Boot Sequence) 5단계 `[OK]`, `Agent READY`, `0.0.0.0:15034` LISTEN
 7. Bash `monitor.sh`
-8. Process/Port Health Check와 실패 시 `exit 1`
-9. CPU/MEM/DISK 수집과 Warning
+8. 프로세스/포트 상태 점검(Process/Port Health Check)과 실패 시 `exit 1`
+9. CPU/MEM/DISK 수집과 경고(Warning)
 10. `/var/log/agent-app/monitor.log` 누적
 11. `10MB / 10개` 로그 관리
 12. `agent-admin` cron 매분 실행
-13. Requirement → Implementation → Verification → Evidence 연결
+13. 요구사항(Requirement) → 구현(Implementation) → 검증(Verification) → 증빙 자료(Evidence) 연결
 
 <a id="runtime-path"></a>
-## 03. R01 Runtime Path
+## 03. R01 실제 실행 경로(Runtime Path)
 
 ```text
 SOURCE
@@ -229,7 +229,7 @@ Evidence + Evaluation Q&A
 ---
 
 <a id="step-01"></a>
-# STEP 01 — 현재 실행 환경 Baseline 확인
+# STEP 01 — 현재 실행 환경 기준 상태(Baseline) 확인
 
 ## ① 왜 하는가
 
@@ -241,10 +241,10 @@ OS, CPU, WSL 여부, systemd, 사용자, sudo, SSH, 중요 포트, UFW, 기존 a
 
 ## ③ 이번 단계에서 알아야 할 용어
 
-- **기준 상태 (Baseline)** — 변경 전 상태 기록입니다.
-- **아키텍처 (Architecture)** — `x86_64`, `aarch64` 같은 CPU 계열입니다.
-- **초기화 시스템 (Init system / systemd)** — 서비스 시작·중지·상태를 관리합니다.
-- **리슨 (Listen)** — 프로세스가 TCP 연결을 받을 준비가 된 상태입니다.
+- **기준 상태(Baseline)** — 변경 전 상태 기록입니다.
+- **아키텍처(Architecture)** — `x86_64`, `aarch64` 같은 CPU 계열입니다.
+- **초기화 시스템(Init system / systemd)** — 서비스 시작·중지·상태를 관리합니다.
+- **리슨(Listen)** — 프로세스가 TCP 연결을 받을 준비가 된 상태입니다.
 
 ## ④ 필요한 핵심 개념
 
