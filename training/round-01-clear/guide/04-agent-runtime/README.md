@@ -9,18 +9,18 @@
 
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
-### 1. Agent 파일·환경 변수·비밀정보 준비
-- [STEP 06 — Agent 압축 파일(Archive)·환경 변수·비밀정보 준비](../04-AGENT-RUNTIME.md#step-06)
+### 1. 에이전트 파일·환경 변수·비밀정보 준비
+- [STEP 06 — 에이전트(Agent) 압축 파일(Archive)·환경 변수·비밀정보 준비](01-agent-setup.md)
 
-### 2. Agent 실제 실행과 포트 검증
-- [STEP 07 — Agent 실제 실행(Runtime) 검증](../04-AGENT-RUNTIME.md#step-07)
+### 2. 에이전트 실제 실행과 포트 검증
+- [STEP 07 — 에이전트(Agent) 실제 실행(Runtime Execution) 검증](02-agent-runtime.md)
 
 ## 완료 조건
 
 - [ ] STEP 06 완료
 - [ ] STEP 07 완료
 - [ ] 비밀정보(Secret) 값을 출력하지 않고 존재·권한·동작만 확인하는 원칙을 지켰다.
-- [ ] Agent가 비루트 사용자로 실행되는지 확인했다.
+- [ ] 에이전트(Agent)가 비루트(Non-root) 사용자로 실행되는지 확인했다.
 - [ ] `0.0.0.0:15034` 실제 리슨(Listen)을 확인했다.
 
 ## 이동
