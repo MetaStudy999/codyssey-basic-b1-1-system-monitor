@@ -10,10 +10,10 @@
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
 ### 1. SSH 서버 설정과 실제 새 연결 검증
-- [STEP 03 — SSH 20022 / Root 원격 로그인 차단](../02-SSH-AND-FIREWALL.md#step-03)
+- [STEP 03 — SSH 20022 / Root 원격 로그인 차단](01-ssh.md)
 
 ### 2. 방화벽 정책과 허용 포트 정리
-- [STEP 04 — UFW 방화벽 정책 구성](../02-SSH-AND-FIREWALL.md#step-04)
+- [STEP 04 — UFW 방화벽 정책 구성](02-firewall.md)
 
 ## 완료 조건
 
