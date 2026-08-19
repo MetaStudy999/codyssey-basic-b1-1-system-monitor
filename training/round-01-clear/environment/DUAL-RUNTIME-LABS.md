@@ -4,11 +4,15 @@
 
 B1-1의 공식 Mission CLEAR는 실제 Linux 시스템 Runtime에서 수행하고, Docker는 **선택 학습**으로 분리합니다.
 
+현재 B1-1 Workcell은 **⏸ PAUSED / READY TO RESUME**이며 실패나 CLEAR 상태가 아닙니다. 재개 시 사용자가 선택한 `MAC-V` 또는 `WIN-V`를 Current Runtime Context로 사용합니다.
+
 ## Runtime Profiles
 
-- Primary CLEAR: `MAC-V` — macOS → OrbStack → Ubuntu 24.04 Linux Machine
-- Secondary Check: `WIN-V` — Windows 11 Pro → WSL2 → Ubuntu 24.04 direct runtime
+- Supported Runtime: `MAC-V` — macOS → OrbStack → Ubuntu 24.04 Linux Machine
+- Supported Runtime: `WIN-V` — Windows 11 Pro → WSL2 → Ubuntu 24.04 direct runtime
 - Optional Docker Lab: `MAC-D`, `WIN-D`
+
+`MAC-V`와 `WIN-V`는 합격 우선순위의 Primary/Secondary 관계가 아닙니다.
 
 ## CLEAR 계약
 
@@ -16,9 +20,10 @@ B1-1의 Mission CLEAR는 다음으로 판정합니다.
 
 ```text
 공식 Mission/Evaluation
-+ MAC-V 실제 Runtime
-+ verify
++ 선택한 지원 Runtime의 실제 실행
++ Verification
 + Evidence
++ Evaluation
 ```
 
 Docker Lab은 다음의 최종 Evidence를 대체하지 않습니다.
@@ -30,15 +35,17 @@ Docker Lab은 다음의 최종 Evidence를 대체하지 않습니다.
 - system-level cron
 - Agent `15034` 전체 시스템 상태
 
-따라서 **Primary Linux Runtime → Verify → Evidence → CLEAR**가 우선이며, Docker 미수행은 B1-1 CLEAR를 막지 않습니다.
+따라서 **Supported Linux Runtime → Verify → Evidence → Evaluation → CLEAR**가 우선이며, Docker 미수행은 B1-1 CLEAR를 막지 않습니다.
+
+공식 Mission/Evaluation이 두 플랫폼 모두를 요구하지 않는 한 한 지원 Runtime에서 공식 요구를 충족하면 다른 지원 Runtime 미수행만으로 CLEAR를 자동 차단하지 않습니다. 두 환경 모두 실제 PASS하면 내부 품질 상태로 `CROSS-PLATFORM VERIFIED`를 추가할 수 있습니다.
 
 ---
 
-# Lab A — Primary Linux Runtime
+# Lab A — MAC-V Linux Runtime
 
 ## ① 왜 하는가
 
-B1-1의 핵심은 Linux 시스템 운영입니다. systemd, sshd, UFW, 사용자/그룹, ACL, cron을 실제 Ubuntu 24.04 환경에서 검증해야 합니다.
+macOS 학교 환경에서 OrbStack Ubuntu 24.04를 실제 Linux Runtime으로 사용해 B1-1의 systemd, sshd, UFW, 사용자/그룹, ACL, cron을 검증합니다.
 
 ## ② 무엇을 하는가
 
@@ -58,7 +65,8 @@ Baseline
 → failure/warning
 → verify
 → Evidence
-→ CLEAR
+→ Evaluation
+→ CLEAR 판정
 ```
 
 ## ③ 실행 환경
@@ -101,24 +109,34 @@ Secret 값은 저장하지 않습니다.
 
 ---
 
-# Lab B — Windows/WSL2 Secondary Check (권장)
+# Lab B — WIN-V Linux Runtime
 
 ## ① 목적
 
-B1-1 CLEAR 이후 또는 별도 Portability 시간에 핵심 Linux 경로가 Windows 11 Pro + WSL2 Ubuntu 24.04에서도 재현되는지 확인합니다.
+Windows 11 Pro + WSL2 Ubuntu 24.04에서 같은 B1-1 공식 요구가 재현되는지 실제 Runtime으로 수행할 수 있습니다.
 
 ## ② 범위
 
-전체 미션을 다시 반복하지 않고 다음을 중심으로 확인합니다.
+필요한 경우 전체 B1-1 Runtime을 같은 기준으로 수행합니다.
 
 - Ubuntu 24.04 / architecture
 - systemd
-- sshd 서비스 가능 여부
+- sshd
+- UFW 및 네트워크 해석
 - users/groups/ACL
-- process/port/log/cron
-- OrbStack과 WSL2의 network/service 차이
+- Agent process/port/log
+- cron
+- Verification / Evidence
 
-Secondary Check 미완료만으로 B1-1을 BLOCKED 처리하지 않습니다.
+WIN-V는 `Persistent` 환경이므로 정상 상태를 매번 재설치하지 않고 `VERIFY BEFORE REINSTALL` 원칙을 사용합니다.
+
+## ③ 상태 해석
+
+```text
+MAC-V PASS ≠ WIN-V PASS
+WIN-V 미수행 ≠ B1-1 FAIL
+MAC-V + WIN-V 실제 PASS → CROSS-PLATFORM VERIFIED 가능
+```
 
 ---
 
@@ -131,10 +149,10 @@ B1-1 CLEAR에는 필요하지 않지만 Bash monitor와 Agent 관찰 로직을 �
 ## ② 선택 판단
 
 ```text
-B1-1 CLEAR 진행 중인가?
-→ YES: Docker Lab보다 MAC-V Runtime 우선
+B1-1 공식 Runtime 진행 중인가?
+→ YES: Docker Lab보다 선택한 MAC-V/WIN-V Runtime 우선
 
-B1-1 CLEAR 완료 후 Docker 학습이 필요한가?
+공식 Runtime 이후 Docker 반복 학습이 필요한가?
 ├─ YES: Optional Docker Lab
 └─ NO: SKIP / 후속 Docker Track
 ```
@@ -176,23 +194,27 @@ OrbStack/WSL2 Linux Machine의 최종 network state
 Mission 상태와 환경 학습 상태를 분리합니다.
 
 ```text
-B1-1 Mission CLEAR        [ ]
-MAC-V Primary             [ ]
-WIN-V Secondary Check     [ ]
-MAC-D Docker Lab          [ ] optional
-WIN-D Docker Lab          [ ] optional
+B1-1 Workcell               [⏸ PAUSED / READY TO RESUME]
+B1-1 Mission CLEAR          [ ]
+MAC-V Runtime               [ ]
+WIN-V Runtime               [ ]
+CROSS-PLATFORM VERIFIED     [ ] optional quality status
+MAC-D Docker Lab            [ ] optional
+WIN-D Docker Lab            [ ] optional
 ```
 
-## FAST TRACK 운영 순서
+## FAST TRACK과 현재 Workcell 포커스
+
+FAST TRACK의 정식 순서는 Control Tower에서 관리합니다. 현재 B1-1 Workcell이 일시정지되어 있어도 B1-1을 FAIL 또는 CLEAR로 바꾸지 않습니다.
+
+재개 시:
 
 ```text
-MAC-V Primary Runtime
-→ Verify / Evidence
-→ ✅ B1-1 CLEAR
-→ B1-2
-
-WIN-V / Docker Labs
-→ 필요한 경우 별도 Portability/Training 시간에 수행
+Current Runtime Context 선택
+→ Bootstrap / Identity 확인
+→ B1-1 Runtime
+→ Verify / Evidence / Evaluation
+→ 공식 조건 충족 시에만 ✅ B1-1 CLEAR
 ```
 
-Docker를 하지 않았다는 이유로 B1-1 FAST TRACK을 지연시키지 않습니다.
+Docker Lab을 하지 않았다는 이유로 B1-1 Runtime을 지연시키지 않습니다.
