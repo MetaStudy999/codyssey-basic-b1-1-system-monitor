@@ -1,0 +1,132 @@
+name: One-shot split B1-1 module 02
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/_oneshot-split-b1-1-module-02.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  split-module-02:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Split module 02 without content loss
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          source_path = Path('training/round-01-clear/guide/02-SSH-AND-FIREWALL.md')
+          readme_path = Path('training/round-01-clear/guide/02-ssh-firewall/README.md')
+
+          expected = {
+              source_path: 'ed7d8860436f67c97ee161d34ced2b5d0692ee66',
+              readme_path: 'ee0b185331cf228d5929f9e3e300b37458f30c4c',
+          }
+          for path, blob in expected.items():
+              actual = subprocess.check_output(['git', 'hash-object', str(path)], text=True).strip()
+              if actual != blob:
+                  raise SystemExit(f'drift: {path}: expected {blob}, got {actual}')
+
+          text = source_path.read_text(encoding='utf-8')
+          marker3 = '<a id="step-03"></a>\n'
+          marker4 = '<a id="step-04"></a>\n'
+          if text.count(marker3) != 1 or text.count(marker4) != 1:
+              raise SystemExit('STEP 03/04 markers are not unique')
+
+          i3 = text.index(marker3)
+          i4 = text.index(marker4)
+          step3 = text[i3:i4].rstrip()
+          if step3.endswith('---'):
+              step3 = step3[:-3].rstrip()
+
+          step4 = text[i4:].rstrip()
+          old_nav = '\n## 다음 이동\n'
+          if old_nav in step4:
+              step4 = step4.split(old_nav, 1)[0].rstrip()
+          if step4.endswith('---'):
+              step4 = step4[:-3].rstrip()
+
+          module_dir = Path('training/round-01-clear/guide/02-ssh-firewall')
+          ssh_path = module_dir / '01-ssh.md'
+          firewall_path = module_dir / '02-firewall.md'
+
+          ssh_header = '''# B1-1 모듈 02 — STEP 03 보안 원격 접속(Secure Shell, SSH) 설정\n\n> [← 모듈 02 목차](README.md) · [다음: STEP 04 →](02-firewall.md) · [전체 입문자 가이드](../../BEGINNER-GUIDE.md)\n\n'''
+          ssh_footer = '''\n\n---\n\n## 다음 이동\n\n[← 모듈 02 목차](README.md) · [다음: STEP 04 →](02-firewall.md) · [전체 입문자 가이드](../../BEGINNER-GUIDE.md)\n'''
+          firewall_header = '''# B1-1 모듈 02 — STEP 04 방화벽(Uncomplicated Firewall, UFW) 정책 구성\n\n> [← STEP 03](01-ssh.md) · [모듈 02 목차](README.md) · [전체 입문자 가이드](../../BEGINNER-GUIDE.md)\n\n'''
+          firewall_footer = '''\n\n---\n\n## 다음 이동\n\n[← STEP 03](01-ssh.md) · [모듈 02 목차](README.md) · [다음: 모듈 03 →](../03-users-groups-acl/README.md) · [전체 입문자 가이드](../../BEGINNER-GUIDE.md)\n'''
+
+          ssh_path.write_text(ssh_header + step3 + ssh_footer, encoding='utf-8')
+          firewall_path.write_text(firewall_header + step4 + firewall_footer, encoding='utf-8')
+
+          readme = readme_path.read_text(encoding='utf-8')
+          readme = readme.replace(
+              '[STEP 03 — SSH 20022 / Root 원격 로그인 차단](../02-SSH-AND-FIREWALL.md#step-03)',
+              '[STEP 03 — SSH 20022 / Root 원격 로그인 차단](01-ssh.md)'
+          )
+          readme = readme.replace(
+              '[STEP 04 — UFW 방화벽 정책 구성](../02-SSH-AND-FIREWALL.md#step-04)',
+              '[STEP 04 — UFW 방화벽 정책 구성](02-firewall.md)'
+          )
+          readme_path.write_text(readme, encoding='utf-8')
+
+          compat = '''# B1-1 모듈 02 — 이전 경로 호환 안내\n\n이 파일은 B1-1 입문자 가이드의 **3계층 정보 구조(Information Architecture, IA)** 전환 과정에서 기존 링크가 즉시 끊기지 않도록 남겨 둔 호환 경로입니다.\n\n현재 학습 본문의 단일 기준(Source of Truth)은 다음 모듈 목차와 세부 학습 문서입니다.\n\n- [모듈 02 — 보안 원격 접속(Secure Shell, SSH)과 방화벽](02-ssh-firewall/README.md)\n- [STEP 03 — SSH 20022 / Root 원격 로그인 차단](02-ssh-firewall/01-ssh.md)\n- [STEP 04 — 방화벽(Uncomplicated Firewall, UFW) 정책 구성](02-ssh-firewall/02-firewall.md)\n\n> 이 호환 파일에는 상세 명령·설명·검증 내용을 중복하지 않습니다. 새 학습 경로를 사용하세요.\n\n[← 전체 입문자 가이드](../BEGINNER-GUIDE.md) · [모듈 02 목차 →](02-ssh-firewall/README.md)\n'''
+          source_path.write_text(compat, encoding='utf-8')
+
+          # Structural integrity checks.
+          ssh = ssh_path.read_text(encoding='utf-8')
+          fw = firewall_path.read_text(encoding='utf-8')
+          if ssh.count(marker3) != 1 or marker4 in ssh:
+              raise SystemExit('STEP 03 learning-unit integrity check failed')
+          if fw.count(marker4) != 1 or marker3 in fw:
+              raise SystemExit('STEP 04 learning-unit integrity check failed')
+          if '(01-ssh.md)' not in readme_path.read_text(encoding='utf-8'):
+              raise SystemExit('module README STEP 03 link was not updated')
+          if '(02-firewall.md)' not in readme_path.read_text(encoding='utf-8'):
+              raise SystemExit('module README STEP 04 link was not updated')
+
+          # Ensure key safety/content anchors survived the split.
+          required_ssh = [
+              'Port 20022', 'PermitRootLogin no', 'sshd -t', 'sshd -T',
+              'ssh -p 20022', 'Recovery', 'DO NOT RERUN BLINDLY'
+          ]
+          required_fw = [
+              'ufw allow 20022/tcp', 'ufw allow 15034/tcp',
+              'ufw default deny incoming', 'ufw default allow outgoing',
+              'ufw --force enable', 'Recovery', 'DO NOT RERUN BLINDLY'
+          ]
+          for token in required_ssh:
+              if token not in ssh:
+                  raise SystemExit(f'STEP 03 lost required content: {token}')
+          for token in required_fw:
+              if token not in fw:
+                  raise SystemExit(f'STEP 04 lost required content: {token}')
+          PY
+
+          git diff --check
+          git status --short
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            training/round-01-clear/guide/02-SSH-AND-FIREWALL.md \
+            training/round-01-clear/guide/02-ssh-firewall/README.md \
+            training/round-01-clear/guide/02-ssh-firewall/01-ssh.md \
+            training/round-01-clear/guide/02-ssh-firewall/02-firewall.md
+          git commit -m 'docs: split B1-1 module 02 into learning units'
+          git push origin HEAD:main
