@@ -9,15 +9,15 @@
 
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
-### 1. 사용자·그룹·디렉터리·ACL 구성
-- [STEP 05 — 사용자·그룹·디렉터리·ACL 구성](../03-USERS-GROUPS-ACL.md#step-05)
+### 1. 사용자·그룹·디렉터리·접근 제어 목록 구성
+- [STEP 05 — 사용자·그룹·디렉터리·접근 제어 목록(ACL) 구성](01-users-groups-acl.md)
 
 ## 완료 조건
 
 - [ ] STEP 05 완료
 - [ ] `agent-common`과 `agent-core`의 역할을 구분했다.
 - [ ] `agent-test`가 보안 영역에 접근하지 못해야 하는 이유를 설명할 수 있다.
-- [ ] 파일 모드 권한과 ACL의 차이를 이해했다.
+- [ ] 파일 모드 권한과 접근 제어 목록(ACL)의 차이를 이해했다.
 
 ## 이동
 
