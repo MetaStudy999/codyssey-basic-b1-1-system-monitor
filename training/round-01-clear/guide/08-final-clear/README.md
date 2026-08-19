@@ -10,7 +10,7 @@
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
 ### 1. 최종 미션 완료 판정
-- [STEP 15 — B1-1 최종 미션 완료(CLEAR) Gate](../08-FINAL-CLEAR.md#step-15)
+- [STEP 15 — B1-1 최종 미션 완료(CLEAR) Gate](01-final-clear.md)
 
 ## 완료 조건
 
