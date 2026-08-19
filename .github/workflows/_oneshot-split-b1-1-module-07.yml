@@ -81,7 +81,6 @@ jobs:
           for path, content in docs.items():
               path.write_text(content, encoding='utf-8')
 
-          # Content-preservation checks: each original STEP body must appear verbatim once.
           if docs[module_dir / '01-verification.md'].count(step12) != 1:
               raise SystemExit('[FAIL] STEP 12 preservation check')
           if docs[module_dir / '02-evidence.md'].count(step13) != 1:
@@ -118,7 +117,6 @@ jobs:
 '''
           src_path.write_text(compatibility, encoding='utf-8')
 
-          # Structural verification.
           expected = [
               module_dir / 'README.md',
               module_dir / '01-verification.md',
@@ -156,3 +154,5 @@ jobs:
           git diff --cached --check
           git commit -m 'docs: split B1-1 module 07 into learning units'
           git push origin HEAD:main
+
+# retrigger after workflow exists on default branch
