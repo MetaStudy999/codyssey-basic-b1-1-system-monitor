@@ -10,13 +10,13 @@
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
 ### 1. 통합 자동 검증
-- [STEP 12 — 통합 `verify.sh` 검증(Verification)](../07-VERIFICATION-AND-EVIDENCE.md#step-12)
+- [STEP 12 — 통합 `verify.sh` 검증(Verification)](01-verification.md)
 
 ### 2. 실제 증빙 자료 수집과 연결
-- [STEP 13 — 실제 증빙 자료(Evidence) 수집·검토·연결](../07-VERIFICATION-AND-EVIDENCE.md#step-13)
+- [STEP 13 — 실제 증빙 자료(Evidence) 수집·검토·연결](02-evidence.md)
 
 ### 3. 평가 질의응답 학습
-- [STEP 14 — 평가 질의응답(Evaluation Q&A) 학습·모의 설명](../07-VERIFICATION-AND-EVIDENCE.md#step-14)
+- [STEP 14 — 평가 질의응답(Evaluation Q&A) 학습·모의 설명](03-evaluation-qa.md)
 
 ## 완료 조건
 
