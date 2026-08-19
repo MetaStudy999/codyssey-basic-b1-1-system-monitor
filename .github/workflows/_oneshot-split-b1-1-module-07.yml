@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/_oneshot-split-b1-1-module-07.yml'
+      - '.github/module07-trigger.txt'
 
 permissions:
   contents: write
@@ -139,13 +139,14 @@ jobs:
           print('[PASS] module 07 split and structural checks complete')
           PY
 
-      - name: Commit module 07 split and remove one-shot workflow
+      - name: Commit module 07 split and remove one-shot files
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git rm .github/workflows/_oneshot-split-b1-1-module-07.yml
+          git rm .github/module07-trigger.txt
           git add training/round-01-clear/guide/07-VERIFICATION-AND-EVIDENCE.md
           git add training/round-01-clear/guide/07-verification-evidence/README.md
           git add training/round-01-clear/guide/07-verification-evidence/01-verification.md
@@ -154,5 +155,3 @@ jobs:
           git diff --cached --check
           git commit -m 'docs: split B1-1 module 07 into learning units'
           git push origin HEAD:main
-
-# retrigger after workflow exists on default branch
