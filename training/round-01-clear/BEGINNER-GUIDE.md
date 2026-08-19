@@ -117,12 +117,10 @@ bash -n monitor.sh                                      → 🟢 SAFE TO RERUN
 
 ---
 
----
-
 <a id="module-map"></a>
 ## 📚 학습 모듈 지도(Module Map)
 
-B1-1의 상세 따라하기는 한 파일에 누적하지 않고 **기술 흐름별 학습 모듈(Module)**로 분리합니다. `BEGINNER-GUIDE.md`는 빠른 시작(Quick Start)과 전체 이동을 담당하는 **중앙 허브(Hub)**입니다.
+B1-1의 상세 따라하기는 **전체 중앙 허브(Hub) → 모듈별 지역 목차(Local Table of Contents, Local TOC) → 세부 학습 문서(Learning Unit)**의 3계층 정보 구조(Information Architecture, IA)로 관리합니다. `BEGINNER-GUIDE.md`는 빠른 시작(Quick Start)과 전체 모듈 이동을 담당하고, 각 `guide/<module>/README.md`는 연관 개념과 STEP을 분류한 모듈 목차를 담당합니다.
 
 > 문서 구조를 나눈 것만으로 실제 실행(Runtime), 검증(Verification), 증빙 자료(Evidence), 완료(CLEAR) 상태가 바뀌지는 않습니다.
 
@@ -142,19 +140,20 @@ B1-1의 상세 따라하기는 한 파일에 누적하지 않고 **기술 흐름
 
 | 모듈 | 범위 | 바로가기 | 현재 상태 |
 |---:|---|---|---|
-| 00 | 개요·공식 기준·최종 산출물·전체 실행 경로 | [미션 개요와 공식 기준](guide/00-OVERVIEW.md) | ⬜ 실제 실행 전/진행 중 |
-| 01 | STEP 01~02 | [실행 전 점검과 기준 상태](guide/01-PREFLIGHT-AND-BASELINE.md) | ⬜ 실제 실행 전/진행 중 |
-| 02 | STEP 03~04 | [SSH와 방화벽](guide/02-SSH-AND-FIREWALL.md) | ⬜ 실제 실행 전/진행 중 |
-| 03 | STEP 05 | [사용자·그룹·접근 제어 목록](guide/03-USERS-GROUPS-ACL.md) | ⬜ 실제 실행 전/진행 중 |
-| 04 | STEP 06~07 | [Agent 준비와 실제 실행](guide/04-AGENT-RUNTIME.md) | ⬜ 실제 실행 전/진행 중 |
-| 05 | STEP 08~09 | [모니터링·로그 회전](guide/05-MONITOR-AND-LOG-ROTATION.md) | ⬜ 실제 실행 전/진행 중 |
-| 06 | STEP 10~11 | [cron 자동 실행·실패·경고 분기](guide/06-CRON-FAILURE-WARNING.md) | ⬜ 실제 실행 전/진행 중 |
-| 07 | STEP 12~14 | [검증·증빙·평가 설명](guide/07-VERIFICATION-AND-EVIDENCE.md) | ⬜ 실제 실행 전/진행 중 |
-| 08 | STEP 15 + Reference/Secret 원칙 | [최종 완료 판정](guide/08-FINAL-CLEAR.md) | ⬜ 실제 실행 전/진행 중 |
+| 00 | 개요·공식 기준·최종 산출물·전체 실행 경로 | [미션 개요와 공식 기준](guide/00-overview/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 01 | STEP 01~02 | [실행 전 점검과 기준 상태](guide/01-preflight-baseline/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 02 | STEP 03~04 | [SSH와 방화벽](guide/02-ssh-firewall/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 03 | STEP 05 | [사용자·그룹·접근 제어 목록](guide/03-users-groups-acl/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 04 | STEP 06~07 | [Agent 준비와 실제 실행](guide/04-agent-runtime/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 05 | STEP 08~09 | [모니터링·로그 회전](guide/05-monitor-log/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 06 | STEP 10~11 | [cron 자동 실행·실패·경고 분기](guide/06-cron-health-tests/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 07 | STEP 12~14 | [검증·증빙·평가 설명](guide/07-verification-evidence/README.md) | ⬜ 실제 실행 전/진행 중 |
+| 08 | STEP 15 + Reference/Secret 원칙 | [최종 완료 판정](guide/08-final-clear/README.md) | ⬜ 실제 실행 전/진행 중 |
 
 ### 진행 원칙
 
 - 처음 수행하면 `00 → 01 → ... → 08` 순서로 진행합니다.
+- 각 모듈의 `README.md`에서 연관된 개념과 STEP의 지역 목차(Local TOC)를 먼저 확인한 뒤 세부 학습 문서로 이동합니다.
 - 이미 완료한 단계가 있어도 실제 상태를 확인하지 않고 체크하지 않습니다.
 - 실패하면 다음 모듈로 넘어가지 않고 해당 STEP의 STOP/복구(Recovery) 기준을 따릅니다.
 - `CHECKLIST.md`는 최종 완료 여부를 관리하고, 실제 증빙은 `evidence/`에 저장합니다.
@@ -169,5 +168,4 @@ B1-1의 상세 따라하기는 한 파일에 누적하지 않고 **기술 흐름
 
 ## 문서 분할 무결성 원칙
 
-이번 분할은 **내용 삭제가 아니라 구조 리팩터링(Refactoring)**입니다. 기존 STEP 01~15의 상세 본문은 `guide/` 모듈로 이동하며 공식 미션/평가 요구, 명령, STOP/GO, 복구, 재실행 안전성, Secret 보호 원칙을 그대로 유지합니다.
-
+이번 분할은 **내용 삭제가 아니라 구조 리팩터링(Refactoring)**입니다. 기존 STEP 01~15의 상세 본문은 `guide/<module>/<learning-unit>.md`에 보존하며 공식 미션/평가 요구, 명령, STOP/GO, 복구, 재실행 안전성, 비밀정보(Secret) 보호 원칙을 유지합니다.
