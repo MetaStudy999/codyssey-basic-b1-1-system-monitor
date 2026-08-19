@@ -10,10 +10,10 @@
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
 ### 1. 기준 상태 확인
-- [STEP 01 — 현재 실행 환경 기준 상태(Baseline) 확인](../01-PREFLIGHT-AND-BASELINE.md#step-01)
+- [STEP 01 — 현재 실행 환경 기준 상태(Baseline) 확인](01-baseline.md)
 
 ### 2. 필수 도구 준비
-- [STEP 02 — 표준 실행 경로(Golden Path)와 필수 도구 준비](../01-PREFLIGHT-AND-BASELINE.md#step-02)
+- [STEP 02 — 표준 실행 경로(Golden Path)와 필수 도구 준비](02-prerequisites.md)
 
 ## 완료 조건
 
