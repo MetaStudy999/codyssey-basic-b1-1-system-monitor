@@ -1,0 +1,300 @@
+name: One-shot B1-1 three-level guide architecture
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/_oneshot-b1-1-three-level-guide.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  restructure-guide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build hub module TOC and learning units
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import posixpath
+          import subprocess
+
+          root = Path('training/round-01-clear')
+          guide = root / 'guide'
+
+          expected = {
+              root / 'BEGINNER-GUIDE.md': 'a5b283a66f22e54118455ad4bd79c9318d934dea',
+              guide / '00-OVERVIEW.md': '208f70c0f40d56d72263b9d845c14e56922cfbba',
+              guide / '01-PREFLIGHT-AND-BASELINE.md': '85b43e6c863a0ef01c6a37383ac85314a6959834',
+              guide / '02-SSH-AND-FIREWALL.md': 'ed7d8860436f67c97ee161d34ced2b5d0692ee66',
+              guide / '03-USERS-GROUPS-ACL.md': 'f2ee84d53d31a1c54ab0cc4ac8474e9c9f838622',
+              guide / '04-AGENT-RUNTIME.md': '6361cbcdb187203f90d908f53c6d3cef929f2939',
+              guide / '05-MONITOR-AND-LOG-ROTATION.md': 'e5f2586204d97cac33ea8bfee873cf5432d2b844',
+              guide / '06-CRON-FAILURE-WARNING.md': '0f31924b69458d9bef95055f5e61ab19575d5eb2',
+              guide / '07-VERIFICATION-AND-EVIDENCE.md': '90265db4f946c898d8d735c27cf71d4b5727bb6d',
+              guide / '08-FINAL-CLEAR.md': 'f1890b06c236dcd682ec25e0e1721de04ff8cd35',
+          }
+          for path, blob in expected.items():
+              actual = subprocess.check_output(['git', 'hash-object', str(path)], text=True).strip()
+              if actual != blob:
+                  raise SystemExit(f'drift: {path}: expected {blob}, got {actual}')
+
+          modules = [
+              {
+                  'num': '00', 'src': '00-OVERVIEW.md', 'dir': '00-overview',
+                  'title': '개요와 공식 기준', 'scope': '미션 개요·공식 기준·최종 산출물·전체 실행 경로',
+                  'units': []
+              },
+              {
+                  'num': '01', 'src': '01-PREFLIGHT-AND-BASELINE.md', 'dir': '01-preflight-baseline',
+                  'title': '실행 전 점검과 기준 상태', 'scope': 'STEP 01~02',
+                  'units': [('01', '01-baseline.md'), ('02', '02-prerequisites.md')]
+              },
+              {
+                  'num': '02', 'src': '02-SSH-AND-FIREWALL.md', 'dir': '02-ssh-firewall',
+                  'title': '보안 원격 접속(Secure Shell, SSH)과 방화벽(Firewall)', 'scope': 'STEP 03~04',
+                  'units': [('03', '01-ssh.md'), ('04', '02-firewall.md')]
+              },
+              {
+                  'num': '03', 'src': '03-USERS-GROUPS-ACL.md', 'dir': '03-users-groups-acl',
+                  'title': '사용자·그룹·접근 제어 목록(Access Control List, ACL)', 'scope': 'STEP 05',
+                  'units': [('05', '01-users-groups-acl.md')]
+              },
+              {
+                  'num': '04', 'src': '04-AGENT-RUNTIME.md', 'dir': '04-agent-runtime',
+                  'title': '에이전트(Agent) 준비와 실제 실행(Runtime)', 'scope': 'STEP 06~07',
+                  'units': [('06', '01-agent-setup.md'), ('07', '02-agent-runtime.md')]
+              },
+              {
+                  'num': '05', 'src': '05-MONITOR-AND-LOG-ROTATION.md', 'dir': '05-monitor-log',
+                  'title': '모니터링(Monitoring)과 로그 회전(Log Rotation)', 'scope': 'STEP 08~09',
+                  'units': [('08', '01-monitor-install.md'), ('09', '02-log-rotation.md')]
+              },
+              {
+                  'num': '06', 'src': '06-CRON-FAILURE-WARNING.md', 'dir': '06-cron-health-tests',
+                  'title': 'cron 자동 실행·실패·경고 분기', 'scope': 'STEP 10~11',
+                  'units': [('10', '01-cron.md'), ('11', '02-failure-warning.md')]
+              },
+              {
+                  'num': '07', 'src': '07-VERIFICATION-AND-EVIDENCE.md', 'dir': '07-verification-evidence',
+                  'title': '검증(Verification)·증빙 자료(Evidence)·평가 설명', 'scope': 'STEP 12~14',
+                  'units': [('12', '01-verification.md'), ('13', '02-evidence.md'), ('14', '03-evaluation-qa.md')]
+              },
+              {
+                  'num': '08', 'src': '08-FINAL-CLEAR.md', 'dir': '08-final-clear',
+                  'title': '최종 완료(CLEAR) 판정', 'scope': 'STEP 15',
+                  'units': [('15', '01-final-clear.md')]
+              },
+          ]
+
+          old_to_new = {
+              m['src']: f"../{m['dir']}/README.md" for m in modules
+          }
+
+          def rewrite_relative_links(text: str) -> str:
+              text = text.replace('(../BEGINNER-GUIDE.md)', '(../../BEGINNER-GUIDE.md)')
+              text = text.replace('(../CHECKLIST.md)', '(../../CHECKLIST.md)')
+              text = text.replace('(../docs/', '(../../docs/')
+              text = text.replace('(../evidence/', '(../../evidence/')
+              text = text.replace('(../environment/', '(../../environment/')
+              for old, new in old_to_new.items():
+                  text = text.replace(f'({old})', f'({new})')
+              return text
+
+          # Global learning-unit sequence for previous/next navigation.
+          unit_records = []
+          for m in modules:
+              for step, filename in m['units']:
+                  unit_records.append((step, m['dir'], filename))
+
+          # Move overview into its module directory and adjust navigation links.
+          overview = modules[0]
+          overview_dir = guide / overview['dir']
+          overview_dir.mkdir(parents=True, exist_ok=False)
+          overview_text = (guide / overview['src']).read_text(encoding='utf-8')
+          overview_text = rewrite_relative_links(overview_text)
+          overview_text = overview_text.replace(
+              '[다음: 모듈 01 →](../01-preflight-baseline/README.md)',
+              '[다음: 모듈 01 →](../01-preflight-baseline/README.md)'
+          )
+          (overview_dir / 'README.md').write_text(overview_text, encoding='utf-8')
+
+          step_anchor_re = re.compile(r'(?m)^<a id="step-(\d{2})"></a>\n')
+          step_heading_re = re.compile(r'(?m)^## STEP (\d{2}) — (.+)$')
+
+          for index, m in enumerate(modules[1:], start=1):
+              src = guide / m['src']
+              text = src.read_text(encoding='utf-8')
+              matches = list(step_anchor_re.finditer(text))
+              found_steps = [x.group(1) for x in matches]
+              expected_steps = [x[0] for x in m['units']]
+              if found_steps != expected_steps:
+                  raise SystemExit(f'{src}: step anchors {found_steps} != {expected_steps}')
+
+              module_dir = guide / m['dir']
+              module_dir.mkdir(parents=True, exist_ok=False)
+
+              titles = []
+              for i, (step, filename) in enumerate(m['units']):
+                  start = matches[i].start()
+                  end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+                  chunk = text[start:end].strip() + '\n'
+
+                  # Remove the old module-level footer; unit navigation is rebuilt below.
+                  chunk = re.sub(
+                      r'\n---\n(?:\n---\n)?\n## 다음 이동\n[\s\S]*$',
+                      '\n',
+                      chunk,
+                      count=1,
+                  )
+                  hm = step_heading_re.search(chunk)
+                  if not hm or hm.group(1) != step:
+                      raise SystemExit(f'{src}: STEP {step} heading missing')
+                  title = hm.group(2).strip()
+                  titles.append((step, title, filename))
+
+                  # Promote the STEP heading to the document title.
+                  chunk = chunk[:hm.start()] + f'# STEP {step} — {title}' + chunk[hm.end():]
+                  chunk = rewrite_relative_links(chunk)
+
+                  global_idx = next(j for j, r in enumerate(unit_records) if r == (step, m['dir'], filename))
+                  if global_idx == 0:
+                      prev_link = '../00-overview/README.md'
+                      prev_label = '이전: 개요'
+                  else:
+                      _, prev_dir, prev_file = unit_records[global_idx - 1]
+                      prev_link = posixpath.relpath(f'../{prev_dir}/{prev_file}', start=f'../{m["dir"]}')
+                      prev_label = '이전 학습 단위'
+                  if global_idx + 1 >= len(unit_records):
+                      next_link = '../../BEGINNER-GUIDE.md'
+                      next_label = '다음: 전체 허브'
+                  else:
+                      _, next_dir, next_file = unit_records[global_idx + 1]
+                      next_link = posixpath.relpath(f'../{next_dir}/{next_file}', start=f'../{m["dir"]}')
+                      next_label = '다음 학습 단위'
+
+                  nav = (
+                      f'\n\n> [← 모듈 {m["num"]} 목차](README.md) · '
+                      f'[전체 입문자 가이드](../../BEGINNER-GUIDE.md) · '
+                      f'[{prev_label}]({prev_link}) · [{next_label} →]({next_link})\n'
+                  )
+                  first_newline = chunk.find('\n', chunk.find('# STEP'))
+                  chunk = chunk[:first_newline] + nav + chunk[first_newline:]
+                  (module_dir / filename).write_text(chunk, encoding='utf-8')
+
+              prev_module = modules[index - 1]
+              next_module = modules[index + 1] if index + 1 < len(modules) else None
+              prev_nav = f'[← 이전: 모듈 {prev_module["num"]}](../{prev_module["dir"]}/README.md)'
+              next_nav = (
+                  f'[다음: 모듈 {next_module["num"]} →](../{next_module["dir"]}/README.md)'
+                  if next_module else
+                  '[다음: 전체 입문자 가이드 →](../../BEGINNER-GUIDE.md)'
+              )
+              toc = '\n'.join(
+                  f'- [STEP {step} — {title}]({filename})'
+                  for step, title, filename in titles
+              )
+              checks = '\n'.join(f'- [ ] STEP {step} 완료' for step, _, _ in titles)
+              module_readme = f'''# B1-1 모듈 {m['num']} — {m['title']}
+
+> 범위: **{m['scope']}**  
+> {prev_nav} · [전체 입문자 가이드](../../BEGINNER-GUIDE.md) · {next_nav}
+
+## 이 모듈의 목적
+
+이 모듈은 **{m['scope']}**를 하나의 연관된 학습 흐름으로 묶습니다. 이 `README.md`는 지역 목차(Local Table of Contents, Local TOC)이며, 상세 설명·명령·검증은 아래 세부 학습 문서(Learning Unit)에서 관리합니다.
+
+## 📑 모듈 목차(Module Table of Contents, Module TOC)
+
+{toc}
+
+## 진행 방법
+
+1. 위 목차를 순서대로 진행합니다.
+2. 각 세부 문서의 실행 전 점검(Preflight)과 STOP/GO를 먼저 확인합니다.
+3. 실패하면 다음 학습 단위로 넘어가지 않고 해당 문서의 복구(Recovery) 절차를 따릅니다.
+4. 문서 이동만으로 실제 실행(Runtime), 검증(Verification), 증빙 자료(Evidence), 완료(CLEAR) 상태를 변경하지 않습니다.
+
+## 완료 조건
+
+{checks}
+
+## 이동
+
+{prev_nav} · [전체 입문자 가이드](../../BEGINNER-GUIDE.md) · {next_nav}
+'''
+              (module_dir / 'README.md').write_text(module_readme, encoding='utf-8')
+
+          # Update central hub links to module README files and describe the three levels.
+          hub_path = root / 'BEGINNER-GUIDE.md'
+          hub = hub_path.read_text(encoding='utf-8')
+          for m in modules:
+              hub = hub.replace(f'guide/{m["src"]}', f'guide/{m["dir"]}/README.md')
+          old = 'B1-1의 상세 따라하기는 한 파일에 누적하지 않고 **기술 흐름별 학습 모듈(Module)**로 분리합니다. `BEGINNER-GUIDE.md`는 빠른 시작(Quick Start)과 전체 이동을 담당하는 **중앙 허브(Hub)**입니다.'
+          new = 'B1-1의 상세 따라하기는 **전체 중앙 허브(Hub) → 모듈별 지역 목차(Local TOC) → 세부 학습 문서(Learning Unit)**의 3계층 정보 구조(Information Architecture, IA)로 관리합니다. `BEGINNER-GUIDE.md`는 빠른 시작(Quick Start)과 전체 모듈 이동을 담당하고, 각 `guide/<module>/README.md`는 연관 개념과 STEP을 분류한 모듈 목차를 담당합니다.'
+          if old not in hub:
+              raise SystemExit('hub three-level description insertion point missing')
+          hub = hub.replace(old, new, 1)
+          old = '이번 분할은 **내용 삭제가 아니라 구조 리팩터링(Refactoring)**입니다. 기존 STEP 01~15의 상세 본문은 `guide/` 모듈로 이동하며 공식 미션/평가 요구, 명령, STOP/GO, 복구, 재실행 안전성, Secret 보호 원칙을 그대로 유지합니다.'
+          new = '이번 분할은 **내용 삭제가 아니라 구조 리팩터링(Refactoring)**입니다. 기존 STEP 01~15의 상세 본문은 `guide/<module>/<learning-unit>.md`로 이동하며 공식 미션/평가 요구, 명령, STOP/GO, 복구, 재실행 안전성, 비밀정보(Secret) 보호 원칙을 그대로 유지합니다.'
+          if old not in hub:
+              raise SystemExit('hub integrity sentence missing')
+          hub = hub.replace(old, new, 1)
+          hub_path.write_text(hub, encoding='utf-8')
+
+          # Remove old flat module files after all new content is written.
+          for m in modules:
+              old = guide / m['src']
+              if old.exists():
+                  old.unlink()
+
+          # Verification: every STEP 01..15 exists exactly once in learning-unit files.
+          all_units = list(guide.glob('*/*.md'))
+          counts = {f'{n:02d}': 0 for n in range(1, 16)}
+          for path in all_units:
+              if path.name == 'README.md':
+                  continue
+              data = path.read_text(encoding='utf-8')
+              for step in counts:
+                  counts[step] += data.count(f'<a id="step-{step}"></a>')
+          bad = {k: v for k, v in counts.items() if v != 1}
+          if bad:
+              raise SystemExit(f'STEP anchor integrity failed: {bad}')
+
+          # Verify required module README files and unit files exist.
+          for m in modules:
+              readme = guide / m['dir'] / 'README.md'
+              if not readme.is_file():
+                  raise SystemExit(f'missing module README: {readme}')
+              for _, filename in m['units']:
+                  unit = guide / m['dir'] / filename
+                  if not unit.is_file():
+                      raise SystemExit(f'missing learning unit: {unit}')
+
+          # Old flat module links must not remain in the hub.
+          final_hub = hub_path.read_text(encoding='utf-8')
+          stale = [m['src'] for m in modules if m['src'] in final_hub]
+          if stale:
+              raise SystemExit(f'stale flat module links in hub: {stale}')
+          PY
+
+      - name: Commit restructuring and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add training/round-01-clear/BEGINNER-GUIDE.md training/round-01-clear/guide
+          git rm .github/workflows/_oneshot-b1-1-three-level-guide.yml
+          git commit -m 'docs: apply three-level B1-1 learning guide structure'
+          git push origin HEAD:main
