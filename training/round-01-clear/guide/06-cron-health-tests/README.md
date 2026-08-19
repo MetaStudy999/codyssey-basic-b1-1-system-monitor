@@ -10,10 +10,10 @@
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
 ### 1. cron 자동 실행과 실제 로그 증가
-- [STEP 10 — agent-admin cron 매분 자동 실행 검증](../06-CRON-FAILURE-WARNING.md#step-10)
+- [STEP 10 — agent-admin cron 매분 자동 실행 검증](01-cron.md)
 
 ### 2. 실패 경로와 경고 전용 경로
-- [STEP 11 — Health 실패와 Warning-only 분기 격리 검증](../06-CRON-FAILURE-WARNING.md#step-11)
+- [STEP 11 — Health 실패와 Warning-only 분기 격리 검증](02-health-tests.md)
 
 ## 완료 조건
 
