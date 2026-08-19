@@ -9,11 +9,11 @@
 
 ## 📑 모듈 목차(Module Table of Contents, Module TOC)
 
-### 1. monitor.sh 설치와 정상 실행
-- [STEP 08 — monitor.sh 설치와 정상 실행](../05-MONITOR-AND-LOG-ROTATION.md#step-08)
+### 1. `monitor.sh` 설치와 정상 실행
+- [STEP 08 — 모니터링(Monitoring) 설치와 정상 실행](01-monitor-install.md)
 
 ### 2. 10MB / 총 10개 로그 회전 검증
-- [STEP 09 — monitor.log 10MB / 총 10개 로그 회전 격리 검증](../05-MONITOR-AND-LOG-ROTATION.md#step-09)
+- [STEP 09 — 로그 회전(Log Rotation) 격리 검증](02-log-rotation.md)
 
 ## 완료 조건
 
