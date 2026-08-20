@@ -1,0 +1,54 @@
+B1-1 final verifier (read-only)
+----------------------------------------
+
+[ssh]
+[WARN] sshd -T could not be evaluated in the current runtime state; checking static B1-1 drop-in instead
+[PASS] static SSH Port 20022 found
+[PASS] static PermitRootLogin no found
+[PASS] TCP 20022 is LISTEN
+[PASS] TCP 22 is not LISTEN
+
+[ufw]
+[PASS] UFW active
+[PASS] UFW default incoming deny
+[PASS] UFW allows 20022/tcp
+[PASS] UFW allows 15034/tcp
+[PASS] no unexpected UFW ALLOW IN rules
+
+[users-groups]
+[PASS] user exists: agent-admin
+[FAIL] user missing: agent-dev
+[FAIL] user missing: agent-test
+[FAIL] agent-common membership incomplete
+[FAIL] agent-core membership incorrect
+
+[filesystem-acl]
+[FAIL] missing: /home/agent-admin/agent-app
+[FAIL] missing: /home/agent-admin/agent-app/upload_files
+[FAIL] missing: /home/agent-admin/agent-app/api_keys
+[FAIL] missing: /var/log/agent-app
+[WARN] agent-common traverse ACL on /home/agent-admin not confirmed
+
+[agent-env-key]
+[FAIL] /etc/agent-app/agent.env missing or unreadable
+[FAIL] missing: /home/agent-admin/agent-app/api_keys/t_secret.key
+
+[agent-runtime]
+[FAIL] Agent process not found: pattern=agent_app.py
+[FAIL] 0.0.0.0:15034 LISTEN not found
+
+[monitor]
+[FAIL] missing: /home/agent-admin/agent-app/bin/monitor.sh
+[FAIL] deployed monitor.sh Bash syntax failed or file missing
+[FAIL] monitor.log missing or empty
+
+[cron-logrotate]
+[FAIL] agent-admin every-minute cron entry missing
+[FAIL] /etc/logrotate.d/agent-monitor missing or unreadable
+
+[repository-secret-check]
+[PASS] no obvious tracked .key/.env secret files
+
+[summary]
+PASS=11 WARN=2 FAIL=17
+[FAIL] B1-1 final verification has blocking items.
